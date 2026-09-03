@@ -1,0 +1,25 @@
+{
+  "symbols": {
+    "YXT": {
+      "float": {
+        "shares": 2900000,
+        "source": "synthetic replay fixture",
+        "timestamp": "2026-08-10T12:00:00Z"
+      },
+      "news": {
+        "headline": "Synthetic catalyst used only for replay testing",
+        "source": "synthetic replay fixture",
+        "timestamp": "2026-08-10T12:01:00Z"
+      },
+      "time_and_sales": [
+        {
+          "price": "9.60",
+          "size": 100,
+          "side": "buy",
+          "source": "synthetic replay fixture",
+          "timestamp": "2026-08-10T12:02:00Z"
+        }
+      ]
+    }
+  }
+}

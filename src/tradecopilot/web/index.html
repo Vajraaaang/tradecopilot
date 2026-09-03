@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <title>Tradecopilot Visual Desk</title>
+    <link rel="stylesheet" href="/app.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand-block">
+        <img class="feather" src="/assets/robinhood-feather.svg" alt="">
+        <span class="brand-name">Tradecopilot</span>
+        <nav class="primary-nav" aria-label="Primary">
+          <button id="stockCopilotTab" class="nav-tab active" type="button" aria-pressed="true">
+            Stock screen
+          </button>
+          <button id="analysisDeskTab" class="nav-tab" type="button" aria-pressed="false" aria-controls="briefDrawer">Analysis desk</button>
+        </nav>
+      </div>
+      <div class="session-pill"><span class="pulse-dot"></span><span id="sessionMode">Synthetic replay · not live</span></div>
+      <div class="top-actions">
+        <button id="alertToggle" class="alert-toggle" type="button" aria-pressed="false">ALERTS OFF</button>
+        <span class="safety-chip">READ ONLY</span>
+        <span class="market-now" id="marketNow">REGULAR MARKET —</span>
+        <span class="clock" id="topClock">REPLAY TIME —</span>
+        <span class="profile">AN</span>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <section class="chart-widget panel-border">
+        <div class="chart-header">
+          <div class="symbol-line">
+            <span class="link-dot" aria-hidden="true"></span>
+            <form id="symbolForm" class="symbol-switcher">
+              <label class="sr-only" for="symbol">Load a stock symbol</label>
+              <input id="symbol" name="symbol" value="YXT" maxlength="10" autocomplete="off" spellcheck="false" aria-label="Stock symbol">
+              <button type="submit">Load</button>
+            </form>
+            <span class="last-price" id="lastPrice">—</span>
+            <span class="price-change" id="priceChange">—</span>
+            <span id="symbolFeedback" class="symbol-feedback" hidden></span>
+          </div>
+          <div class="chart-tools" aria-label="Chart display tools">
+            <div class="tool-group">
+              <button id="chartTypeToggle" class="chart-tool" type="button" aria-expanded="false" aria-controls="chartTypeMenu">Candles</button>
+              <div id="chartTypeMenu" class="chart-menu chart-type-menu" hidden>
+                <span class="menu-label">CHART TYPE</span>
+                <button type="button" data-chart-type="candles" class="active">Candles</button>
+                <button type="button" data-chart-type="line">Line</button>
+              </div>
+            </div>
+            <button id="crosshairToggle" class="chart-tool active" type="button" aria-pressed="true">Crosshair</button>
+            <div class="tool-group">
+              <button id="indicatorToggle" class="chart-tool" type="button" aria-expanded="false" aria-controls="indicatorMenu">
+                <img src="/assets/technical-indicators.svg" alt="">
+                <span>Indicators</span>
+              </button>
+              <div id="indicatorMenu" class="chart-menu indicator-menu" hidden>
+                <span class="menu-label">VISIBLE STUDIES</span>
+                <label><input type="checkbox" data-study="volume" checked> Volume</label>
+                <label><input type="checkbox" data-study="vwap" checked> VWAP</label>
+                <label><input type="checkbox" data-study="ema9" checked> EMA 9</label>
+                <label><input type="checkbox" data-study="ema20" checked> EMA 20</label>
+                <label><input type="checkbox" data-study="rsi" checked> RSI 14</label>
+                <label><input type="checkbox" data-study="macd" checked> MACD</label>
+              </div>
+            </div>
+            <div class="tool-group">
+              <button id="drawingToggle" class="chart-tool" type="button" aria-expanded="false" aria-controls="drawingMenu">
+                <img src="/assets/drawing-tools.svg" alt="">
+                <span>Draw</span>
+              </button>
+              <div id="drawingMenu" class="chart-menu drawing-menu" hidden>
+                <button type="button" data-drawing="trend">Trend line</button>
+                <button type="button" data-drawing="horizontal">Horizontal line</button>
+                <button type="button" data-drawing="undo">Undo last drawing</button>
+                <button type="button" data-drawing="clear">Clear drawings</button>
+              </div>
+            </div>
+            <button id="fitChart" class="chart-tool icon-tool" type="button">
+              <img src="/assets/intervals.svg" alt="">
+              <span>Fit</span>
+            </button>
+            <button id="logScaleToggle" class="chart-tool" type="button" aria-pressed="false">Log</button>
+            <button id="fullscreenChart" class="chart-tool" type="button">Full screen</button>
+          </div>
+        </div>
+
+        <div class="decision-ribbon" id="decisionRibbon">
+          <div class="state-stack">
+            <span id="decisionKind" class="eyebrow">REPLAYED ENGINE STATE</span>
+            <strong id="state">LOADING</strong>
+          </div>
+          <p id="action">Waiting for the first normalized replay frame.</p>
+          <span id="manualLabel" class="manual-label">HISTORICAL SIMULATION · NOT LIVE</span>
+        </div>
+
+        <div class="chart-stage">
+          <div class="indicator-legend" aria-label="Active indicator values">
+            <div data-legend-study="volume"><span class="legend-dot volume"></span>Volume <b id="legendVolume">—</b></div>
+            <div data-legend-study="vwap"><span class="legend-dot vwap"></span>VWAP <b id="legendVwap">—</b></div>
+            <div data-legend-study="ema9"><span class="legend-dot ema9"></span>EMA (9) <b id="legendEma9">—</b></div>
+            <div data-legend-study="ema20"><span class="legend-dot ema20"></span>EMA (20) <b id="legendEma20">—</b></div>
+            <div><span class="legend-dot trigger"></span>Trigger <b id="legendTrigger">—</b></div>
+            <div><span class="legend-dot stop"></span>Stop <b id="legendStop">—</b></div>
+          </div>
+          <canvas id="priceChart" tabindex="0" aria-label="Interactive candlestick chart with VWAP, EMA9, EMA20, volume, trigger, and stop"></canvas>
+          <div id="chartTooltip" class="chart-tooltip" hidden></div>
+          <div id="drawingHint" class="drawing-hint" hidden></div>
+          <div class="chart-interaction-hint">SCROLL ZOOM · TWO-FINGER / DRAG PAN · CLICK PIN · DOUBLE-CLICK FIT</div>
+        </div>
+
+        <div id="rsiPanel" class="study-panel">
+          <div class="study-title">RSI (14) <span id="rsiValue">—</span></div>
+          <canvas id="rsiChart" aria-label="RSI 14 chart"></canvas>
+        </div>
+        <div id="macdPanel" class="study-panel macd-panel">
+          <div class="study-title">MACD (12, 26, 9) <span id="macdValue">—</span></div>
+          <canvas id="macdChart" aria-label="MACD chart"></canvas>
+        </div>
+
+        <div class="chart-footer">
+          <div class="range-list" aria-label="Visible chart range">
+            <button type="button" data-window-minutes="30">30m</button>
+            <button type="button" data-window-minutes="60">1h</button>
+            <button type="button" data-window-minutes="120">2h</button>
+            <button type="button" data-window-minutes="all" class="active">All</button>
+          </div>
+          <div class="zoom-controls" aria-label="Chart navigation">
+            <button id="zoomOut" type="button">Zoom out</button>
+            <button id="zoomIn" type="button">Zoom in</button>
+            <button id="resetChart" type="button">Reset</button>
+          </div>
+          <div class="interval-control">
+            <span>Interval:</span>
+            <button class="interval active" data-timeframe="1m" type="button">1m</button>
+            <button class="interval" data-timeframe="5m" type="button">5m</button>
+            <button id="rotationToggle" class="rotation-toggle" type="button">AUTO ROTATE ON</button>
+          </div>
+          <span class="chart-status" id="chartStatus">Waiting for data</span>
+        </div>
+      </section>
+
+      <aside class="right-rail">
+        <section class="rail-widget positions-widget panel-border">
+          <div class="widget-head">
+            <div>
+              <span class="widget-kicker">PORTFOLIO FEEDBACK</span>
+              <h2>Current / recent positions</h2>
+            </div>
+            <span class="read-badge">READ</span>
+          </div>
+          <div id="positions" class="widget-body empty-state">
+            <p>No replay position yet.</p>
+          </div>
+        </section>
+
+        <section class="rail-widget screener-widget panel-border">
+          <div class="widget-head">
+            <div>
+              <span class="widget-kicker">LOCAL · NON-MUTATING</span>
+              <h2>Momentum screener</h2>
+            </div>
+            <span id="screenerCount" class="count-badge">0</span>
+          </div>
+          <div class="screener-columns" aria-hidden="true">
+            <span>Symbol</span><span>State</span><span>Gain</span><span>RVOL</span><span>Float</span>
+          </div>
+          <div id="screener" class="widget-body empty-state"><p>Waiting for qualified candidates.</p></div>
+        </section>
+
+        <section class="rail-widget copilot-widget panel-border">
+          <div class="widget-head copilot-head">
+            <div>
+              <span class="widget-kicker">SANITIZED DECISION CONTEXT</span>
+              <h2>Ask Tradecopilot</h2>
+            </div>
+            <div class="chat-badges">
+              <span id="chatModelBadge" class="model-badge">LOCAL</span>
+              <span id="dataState" class="data-badge">OFFLINE</span>
+            </div>
+          </div>
+          <div id="chat" class="chat-log" aria-live="polite">
+            <div class="message assistant">
+              GPT-5.6 Pro answers from sanitized deterministic decision data only. No broker or order tools are attached.
+            </div>
+            <div class="quick-actions" aria-label="Quick analysis tasks">
+              <button type="button" data-query="Why is this state active?">Why this state</button>
+              <button type="button" data-query="What are the trigger, stop, risk, and maximum shares?">Trigger &amp; risk</button>
+              <button type="button" data-query="What do VWAP, EMA, RSI, MACD, and ATR show?">Indicator read</button>
+              <button type="button" data-query="Give me position feedback">Position feedback</button>
+            </div>
+          </div>
+          <form id="chatForm" class="chat-form">
+            <label for="chatInput" class="sr-only">Ask about the current deterministic decision</label>
+            <input id="chatInput" name="query" autocomplete="off" placeholder="Ask about this setup…" maxlength="1000">
+            <button type="submit">Ask</button>
+          </form>
+          <p id="chatSetup" class="chat-setup" hidden>GPT chat needs a separately billed OpenAI API key in the server environment; a ChatGPT subscription cannot be linked directly.</p>
+          <p class="chat-boundary">No account tools. No order actions. The engine remains authoritative.</p>
+        </section>
+      </aside>
+    </main>
+
+    <div class="bottom-strip" aria-label="Risk and data status">
+      <div><span>Trigger</span><b id="stripTrigger">—</b></div>
+      <div><span>Structural stop</span><b id="stripStop">—</b></div>
+      <div><span>Max shares</span><b id="stripShares">—</b></div>
+      <div><span>Reward / risk</span><b id="stripRr">—</b></div>
+      <div><span>Quote age</span><b id="stripAge">—</b></div>
+      <div><span>Missing data</span><b id="stripMissing">—</b></div>
+    </div>
+
+    <div id="briefBackdrop" class="brief-backdrop" hidden></div>
+    <section id="briefDrawer" class="brief-drawer" aria-labelledby="briefTitle" hidden>
+      <header class="brief-head">
+        <div>
+          <span class="widget-kicker">DETERMINISTIC SESSION BRIEF</span>
+          <h2 id="briefTitle">Analysis desk</h2>
+        </div>
+        <button id="briefClose" type="button">Close</button>
+      </header>
+      <div class="brief-hero">
+        <div>
+          <span class="eyebrow">CURRENT DECISION</span>
+          <strong id="briefState">LOADING</strong>
+        </div>
+        <p id="briefAction">Waiting for normalized data.</p>
+      </div>
+      <div class="brief-grid">
+        <article>
+          <span>Setup quality</span>
+          <b id="briefQuality">—</b>
+          <p id="briefQualityDetail">—</p>
+        </article>
+        <article>
+          <span>Structure</span>
+          <b id="briefStructure">—</b>
+          <p id="briefStructureDetail">—</p>
+        </article>
+        <article>
+          <span>Exact plan</span>
+          <b id="briefPlan">—</b>
+          <p id="briefPlanDetail">—</p>
+        </article>
+        <article>
+          <span>Data quality</span>
+          <b id="briefData">—</b>
+          <p id="briefDataDetail">—</p>
+        </article>
+      </div>
+      <div class="brief-lower">
+        <article class="keep-in-mind">
+          <span class="widget-kicker">KEEP IN MIND</span>
+          <ul id="briefReminders"></ul>
+        </article>
+        <article class="transition-history">
+          <span class="widget-kicker">DECISION TIMELINE</span>
+          <div id="briefHistory"></div>
+        </article>
+      </div>
+      <p class="brief-boundary">Analysis only. This brief cannot place, review, modify, or cancel an order.</p>
+    </section>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
