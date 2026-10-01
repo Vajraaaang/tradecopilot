@@ -22,6 +22,7 @@ const ui = {
   drawings: { "1m": [], "5m": [] },
   alertsEnabled: typeof Notification !== "undefined" && Notification.permission === "granted",
   lastAlertSequence: 0,
+  jev: { result: null, pending: false, requestId: 0, notice: "", offline: false, switchingTo: null },
 };
 
 const $ = (id) => document.getElementById(id);
@@ -70,16 +71,23 @@ function deliverBrowserAlert(alert) {
 }
 
 function renderSnapshot(snapshot) {
+  if (ui.snapshot && jevContextKey(ui.snapshot) !== jevContextKey(snapshot)) {
+    clearJev("Market context changed. Request a fresh assessment.");
+  }
   ui.snapshot = snapshot;
+  ui.jev.offline = false;
+  if (snapshot.meta?.symbol === ui.jev.switchingTo) ui.jev.switchingTo = null;
+  renderJev();
   if (!snapshot.ready) return;
   const meta = snapshot.meta;
   const quote = snapshot.quote;
   const indicators = snapshot.indicators;
   const plan = snapshot.plan;
   const simulated = ["replay", "mock"].includes(meta.mode);
+  const priceOnly = meta.price_only === true;
   setText(
     "sessionMode",
-    simulated
+    priceOnly ? "FINNHUB PRICE · LIMITED DATA" : simulated
       ? `${meta.mode.toUpperCase()} SIMULATION · ${snapshot.complete ? "COMPLETE" : "PLAYING"} · NOT LIVE`
       : "LIVE READ-ONLY STREAM",
   );
@@ -87,8 +95,8 @@ function renderSnapshot(snapshot) {
     "topClock",
     `${simulated ? "REPLAY " : "EVENT "}${meta.event_time_pt.slice(11, 19)} PT · ${meta.event_time_et.slice(11, 19)} ET`,
   );
-  setText("decisionKind", simulated ? "REPLAYED ENGINE STATE" : "DETERMINISTIC LIVE STATE");
-  setText("manualLabel", simulated ? "HISTORICAL SIMULATION · NOT LIVE" : "ANALYSIS ONLY · MANUAL EXECUTION");
+  setText("decisionKind", priceOnly ? "ENGINE STATE · LIMITED INPUTS" : simulated ? "REPLAYED ENGINE STATE" : "DETERMINISTIC LIVE STATE");
+  setText("manualLabel", priceOnly ? "PRICE CONTEXT · STRATEGY INPUTS INCOMPLETE" : simulated ? "HISTORICAL SIMULATION · NOT LIVE" : "ANALYSIS ONLY · MANUAL EXECUTION");
   setInputValue("symbol", meta.symbol);
   setText("lastPrice", money(quote.last));
   setText("priceChange", `${quote.change >= 0 ? "+" : ""}${fixed(quote.change)} (${quote.change_percent >= 0 ? "+" : ""}${fixed(quote.change_percent)}%)`);
@@ -106,8 +114,9 @@ function renderSnapshot(snapshot) {
   setText("stripAge", meta.quote_age == null ? "—" : `${fixed(meta.quote_age)}s`);
   setText("stripMissing", snapshot.missing.length ? `${snapshot.missing.length} flagged` : "None");
   const dataState = $("dataState");
-  dataState.textContent = snapshot.error ? "DEGRADED" : simulated ? `${meta.mode.toUpperCase()} DATA` : "LIVE DATA";
-  dataState.classList.toggle("live", !snapshot.error);
+  dataState.textContent = snapshot.error ? "DEGRADED" : priceOnly ? "LIMITED DATA" : simulated ? `${meta.mode.toUpperCase()} DATA` : "LIVE DATA";
+  dataState.classList.toggle("live", !snapshot.error && !priceOnly);
+  renderPriceOnlyStatus();
   const chatMeta = snapshot.chat || { provider: "deterministic", model: "local", reasoning: "local" };
   const modelBadge = $("chatModelBadge");
   const gptEnabled = chatMeta.provider === "openai";
@@ -119,20 +128,175 @@ function renderSnapshot(snapshot) {
   $("chatForm").querySelector("button").disabled = !gptEnabled;
   document.querySelector(".quick-actions").hidden = !gptEnabled;
   deliverBrowserAlert(snapshot.alert);
-  renderPositions(snapshot.positions);
+  renderPositions(snapshot.positions, priceOnly);
   renderScreener(snapshot.screener);
   renderBrief(snapshot);
   renderCharts();
 }
 
-function renderPositions(positions) {
+function jevContextKey(snapshot) {
+  const meta = snapshot?.meta || {};
+  if (meta.price_only) {
+    return JSON.stringify([meta.symbol, meta.data_provider, true, String(meta.quote_time || "").slice(0, 10)]);
+  }
+  const positions = (snapshot?.positions || [])
+    .filter((position) => position.symbol === meta.symbol)
+    .map((position) => [position.quantity, position.average_entry]);
+  return JSON.stringify([
+    meta.symbol, meta.state, meta.position_status, snapshot?.day_stop,
+    snapshot?.plan?.stop, snapshot?.plan?.maximum_shares, positions,
+  ]);
+}
+
+function clearJev(message = "") {
+  ui.jev.requestId += 1;
+  ui.jev.result = null;
+  ui.jev.pending = false;
+  ui.jev.notice = message;
+}
+
+function jevBlockedReason(snapshot) {
+  if (!snapshot?.jev?.enabled) return "Jev is off for this session.";
+  if (!snapshot.ready) return "Waiting for market data.";
+  if (ui.jev.switchingTo) return "Waiting for the selected symbol's market data.";
+  if (snapshot.meta.mode !== "live") return "Jev requests are disabled in replay and mock mode. Use a live feed.";
+  if (snapshot.error || snapshot.complete || ui.jev.offline) return "The live feed is unavailable. Jev results are cleared.";
+  if (snapshot.meta.price_only) {
+    const readiness = snapshot.jev.opinion;
+    if (!readiness?.ready) return readiness?.reason || "Waiting for session prices or recent price history.";
+    const sourceAge = (Date.now() - Date.parse(snapshot.meta.quote_time)) / 1000;
+    if (!Number.isFinite(sourceAge) || sourceAge < 0 || sourceAge > readiness.maximum_source_age_seconds) {
+      return "The source price context is too old. Wait for a new market snapshot.";
+    }
+    return "";
+  }
+  if (["DATA_STALE", "DATA_INSUFFICIENT", "NO_TRADE", "DAY_STOP", "SELL"].includes(snapshot.meta.state) || snapshot.day_stop?.locked) {
+    return `Jev is paused while the engine reports ${snapshot.meta.state}. Follow the engine's risk guidance.`;
+  }
+  const ageLimit = Number(snapshot.jev.maximum_quote_age_seconds) || 2;
+  const wallAge = (Date.now() - Date.parse(snapshot.meta.quote_time)) / 1000;
+  const quoteAge = snapshot.meta.quote_age;
+  if (snapshot.missing?.length || typeof quoteAge !== "number" || !Number.isFinite(quoteAge)
+      || quoteAge < 0 || quoteAge > ageLimit || !Number.isFinite(wallAge) || wallAge < 0 || wallAge > ageLimit) {
+    return "Market data is stale or incomplete. Jev results are cleared.";
+  }
+  return "";
+}
+
+function renderJev() {
+  const snapshot = ui.snapshot;
+  const metadata = snapshot?.jev || { enabled: false, requests_used: 0, request_limit: 100, estimated_cost_usd: 0 };
+  const blocked = jevBlockedReason(snapshot);
+  const opinion = snapshot?.meta?.price_only === true;
+  setText("jevTitle", opinion ? "Jev market opinion" : "Jev assessment");
+  let result = ui.jev.result;
+  if (result && (blocked || result.contextKey !== jevContextKey(snapshot))) {
+    clearJev(blocked || "Market context changed. Request a fresh assessment.");
+    result = null;
+  }
+  if (result && ["available", "uncertain"].includes(result.status)
+      && (!Number.isFinite(Date.parse(result.expires_at)) || Date.parse(result.expires_at) <= Date.now())) {
+    clearJev("The assessment expired. Request a fresh view of the current data.");
+    result = null;
+  }
+  const used = Number(metadata.requests_used) || 0;
+  const limit = Number(metadata.request_limit) || 100;
+  const remaining = Math.max(0, limit - used);
+  const button = $("jevRequest");
+  button.disabled = ui.jev.pending || Boolean(blocked) || remaining === 0;
+  button.textContent = ui.jev.pending ? "Checking…" : "Ask Jev";
+  button.setAttribute("aria-busy", String(ui.jev.pending));
+  setText("jevStatus", ui.jev.pending ? "CHECKING" : result ? result.status.replaceAll("_", " ").toUpperCase() : blocked ? "PAUSED" : "READY");
+  if (!metadata.enabled) setText("jevStatus", "OFF");
+  setText("jevResult", result?.action ? opinion ? `${result.action}-leaning opinion` : `Model view: ${result.action}` : "");
+  const details = [result?.model || metadata.model].filter(Boolean);
+  if (result && ["available", "uncertain"].includes(result.status)) {
+    if (Number.isFinite(result.confidence)) details.push(`${(result.confidence * 100).toFixed(1)}% decision confidence`);
+    if (Number.isFinite(Date.parse(result.source_time))) {
+      details.push(`as of ${new Date(result.source_time).toLocaleString([], { hour12: false, timeZoneName: "short" })}`);
+    }
+    if (result.context_kind) details.push(result.context_kind.replaceAll("_", " "));
+  }
+  setText("jevDetails", metadata.enabled ? details.join(" · ") : "");
+  const fallback = remaining === 0 ? "The request limit has been reached." : opinion
+    ? `${metadata.opinion?.reason || "Informational market opinion"}. Requests run only when you click.`
+    : "Ask for a view of the current setup. Requests run only when you click.";
+  setText("jevMessage", blocked || (ui.jev.pending ? "Assessing the latest server-side market snapshot…" : result?.message || ui.jev.notice || fallback));
+  setText("jevBudget", `${remaining} / ${limit} calls remaining · estimated spend $${(Number(metadata.estimated_cost_usd) || 0).toFixed(4)}`);
+  $("jevBudget").hidden = !metadata.enabled;
+  const distribution = $("jevProbabilities");
+  distribution.replaceChildren();
+  distribution.hidden = !result || !["available", "uncertain"].includes(result.status);
+  if (!distribution.hidden) {
+    ["BUY", "HOLD", "SELL", "WAIT"].forEach((action) => {
+      const probability = Number(result.probabilities?.[action]);
+      if (!Number.isFinite(probability) || probability < 0 || probability > 1) return;
+      const cell = document.createElement("div");
+      const label = document.createElement("span");
+      label.textContent = action;
+      const value = document.createElement("b");
+      value.textContent = `${(probability * 100).toFixed(1)}%`;
+      const meter = document.createElement("meter");
+      meter.min = 0;
+      meter.max = 1;
+      meter.value = probability;
+      meter.setAttribute("aria-label", `${action} decision probability`);
+      cell.append(label, value, meter);
+      distribution.append(cell);
+    });
+  }
+}
+
+async function requestJev() {
+  if ($("jevRequest").disabled || !ui.snapshot?.ready) return;
+  const symbol = ui.snapshot.meta.symbol;
+  const contextKey = jevContextKey(ui.snapshot);
+  const requestId = ++ui.jev.requestId;
+  ui.jev.pending = true;
+  ui.jev.result = null;
+  ui.jev.notice = "";
+  renderJev();
+  try {
+    const response = await fetch("/api/jev", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ symbol }),
+    });
+    if (!response.ok) throw new Error(response.status === 409 ? "Market context changed. Request a fresh assessment." : "Jev is unavailable. The engine remains authoritative.");
+    const result = await response.json();
+    if (requestId !== ui.jev.requestId) return;
+    if (contextKey !== jevContextKey(ui.snapshot) || jevBlockedReason(ui.snapshot) || result.symbol !== symbol) {
+      clearJev("Market context changed. Request a fresh assessment.");
+      return;
+    }
+    if (["available", "uncertain"].includes(result.status)
+        && (!Number.isFinite(Date.parse(result.source_time)) || !Number.isFinite(Date.parse(result.expires_at)))) {
+      throw new Error("Jev returned an invalid assessment. Request a fresh view.");
+    }
+    ui.snapshot.jev = {
+      ...ui.snapshot.jev,
+      requests_used: Math.max(ui.snapshot.jev.requests_used || 0, result.requests_used || 0),
+      estimated_cost_usd: Math.max(ui.snapshot.jev.estimated_cost_usd || 0, result.estimated_cost_usd || 0),
+    };
+    ui.jev.result = { ...result, contextKey };
+  } catch (error) {
+    if (requestId === ui.jev.requestId) ui.jev.notice = error.message || "Jev is unavailable.";
+  } finally {
+    if (requestId === ui.jev.requestId) ui.jev.pending = false;
+    renderJev();
+  }
+}
+
+function renderPositions(positions, priceOnly = false) {
   const root = $("positions");
   root.replaceChildren();
   root.className = "widget-body";
   if (!positions.length) {
     root.className = "widget-body empty-state";
     const empty = document.createElement("p");
-    empty.textContent = "No open or recent replay position.";
+    empty.textContent = priceOnly
+      ? "No broker connection. Position and buying-power data are unavailable."
+      : "No open or recent replay position.";
     root.append(empty);
     return;
   }
@@ -154,7 +318,7 @@ function renderPositions(positions) {
       ["Quantity", position.quantity],
       ["Avg entry", money(position.average_entry)],
       ["Unrealized", money(position.unrealized_pnl)],
-      ["Current R", position.current_r == null ? "—" : `${number(position.current_r, 2)}R`],
+      ["Current R", position.current_r == null ? "—" : `${fixed(position.current_r, 2)}R`],
       ["MFE", money(position.mfe)],
       ["MAE", money(position.mae)],
       ["Stop", money(position.structural_stop)],
@@ -162,7 +326,7 @@ function renderPositions(positions) {
       ["VWAP", money(position.vwap)],
       ["EMA9", money(position.ema9)],
       ["Resistance", money(position.nearest_resistance)],
-      ["Quote age", position.quote_age == null ? "—" : `${number(position.quote_age, 1)}s`],
+      ["Quote age", position.quote_age == null ? "—" : `${fixed(position.quote_age, 1)}s`],
     ].forEach(([label, value]) => {
       const cell = document.createElement("div");
       const small = document.createElement("span");
@@ -212,7 +376,9 @@ function renderScreener(rows) {
     });
     const feedback = document.createElement("p");
     feedback.className = "screener-feedback";
-    feedback.textContent = `${row.pillars}/5 pillars · ${row.feedback}`;
+    feedback.textContent = row.price_only
+      ? `${money(row.price)} · Price only · Setup not assessed`
+      : `${row.pillars}/5 pillars · ${row.feedback}`;
     result.append(feedback);
     root.append(result);
   });
@@ -283,7 +449,8 @@ function updateChartReadout(bars) {
   const suffix = ui.pinnedTimestamp && bars.some((candidate) => candidate.t === ui.pinnedTimestamp) ? " · PINNED" : "";
   setText(
     "chartStatus",
-    `${ui.timeframe} · ${ui.chartType} · ${ui.logScale ? "log" : "linear"} · ${ui.snapshot.indicators.vwap_session || "VWAP unavailable"} · ${bars.length}/${total} bars${suffix}`,
+    ui.snapshot.meta.price_only ? "Finnhub price only · No minute OHLCV"
+      : `${ui.timeframe} · ${ui.chartType} · ${ui.logScale ? "log" : "linear"} · ${ui.snapshot.indicators.vwap_session || "VWAP unavailable"} · ${bars.length}/${total} bars${suffix}`,
   );
   updateTooltip(bar);
 }
@@ -323,7 +490,9 @@ function drawPriceChart(bars, plan) {
   const top = 14;
   const bottom = 30;
   if (!bars.length) {
-    drawEmpty(ctx, width, height, "Waiting for normalized OHLCV bars");
+    drawEmpty(ctx, width, height, ui.snapshot?.meta?.price_only
+      ? "Finnhub provides price only; minute OHLCV is unavailable"
+      : "Waiting for normalized OHLCV bars");
     return;
   }
   const priceValues = bars.flatMap((bar) => [bar.h, bar.l, bar.vwap, bar.ema9, bar.ema20]).filter((value) => value != null);
@@ -605,14 +774,14 @@ function renderBrief(snapshot) {
   const { meta, quality, pattern, plan, indicators } = snapshot;
   setText("briefState", meta.state);
   setText("briefAction", snapshot.action);
-  setText("briefQuality", `${quality.pillars_passed}/5 pillars`);
+  setText("briefQuality", meta.price_only ? "Not assessed" : `${quality.pillars_passed}/5 pillars`);
   setText(
     "briefQualityDetail",
     `RVOL ${fixed(quality.rvol, 1)} · gain ${fixed(quality.gain_percent)}% · float ${compact(quality.float_shares)}`,
   );
   setText(
     "briefStructure",
-    pattern.pullback_low == null ? "Pattern forming" : `${fixed(pattern.retracement_percent)}% retracement`,
+    meta.price_only ? "Unavailable" : pattern.pullback_low == null ? "Pattern forming" : `${fixed(pattern.retracement_percent)}% retracement`,
   );
   setText(
     "briefStructureDetail",
@@ -623,10 +792,11 @@ function renderBrief(snapshot) {
     "briefPlanDetail",
     `Stop ${money(plan.stop)} · ${plan.maximum_shares ?? "—"} max shares · ${fixed(plan.reward_risk)}R available`,
   );
-  setText("briefData", snapshot.missing.length ? `${snapshot.missing.length} limitations` : "Required data ready");
+  setText("briefData", meta.price_only ? "Price only" : snapshot.missing.length ? `${snapshot.missing.length} limitations` : "Required data ready");
   setText(
     "briefDataDetail",
-    `VWAP ${money(indicators.vwap)} · EMA9 ${money(indicators.ema9_1m)} · quote age ${fixed(meta.quote_age)}s`,
+    meta.price_only ? snapshot.capabilities.reason
+      : `VWAP ${money(indicators.vwap)} · EMA9 ${money(indicators.ema9_1m)} · quote age ${fixed(meta.quote_age)}s`,
   );
 
   const reminders = $("briefReminders");
@@ -751,6 +921,9 @@ async function fetchSnapshot() {
     if (!response.ok) throw new Error("snapshot unavailable");
     renderSnapshot(await response.json());
   } catch (_) {
+    ui.jev.offline = true;
+    clearJev("The live feed is unavailable. Jev results are cleared.");
+    renderJev();
     const badge = $("dataState");
     badge.textContent = "OFFLINE";
     badge.classList.remove("live");
@@ -772,6 +945,9 @@ function connectEventStream() {
     }
   });
   eventSource.onerror = () => {
+    ui.jev.offline = true;
+    clearJev("The live feed is unavailable. Jev results are cleared.");
+    renderJev();
     eventSource.close();
     eventSource = null;
     fetchSnapshot();
@@ -801,7 +977,21 @@ function animateChartChange() {
   requestAnimationFrame(() => chart.classList.add("chart-refresh"));
 }
 
+function renderPriceOnlyStatus() {
+  if (!ui.snapshot?.meta?.price_only) return;
+  const meta = ui.snapshot.meta;
+  const timestamp = Date.parse(meta.quote_time);
+  const elapsed = Number.isFinite(timestamp) ? Math.max(0, (Date.now() - timestamp) / 1000) : null;
+  const age = elapsed == null ? meta.quote_age : Math.max(meta.quote_age || 0, elapsed);
+  setText("stripAge", age == null ? "—" : `${fixed(age)}s`);
+  setText("topClock", Number.isFinite(timestamp)
+    ? `LAST TRADE ${new Date(timestamp).toLocaleString("en-US", { timeZone: "America/Los_Angeles", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false, timeZoneName: "short" })}`
+    : "LAST TRADE TIME UNAVAILABLE");
+  setText("dataState", ui.snapshot.error ? "DEGRADED" : age == null || age > 2 ? "LIMITED · STALE PRICE" : "LIMITED DATA");
+}
+
 function renderCurrentMarketStatus() {
+  renderPriceOnlyStatus();
   const eastern = Object.fromEntries(
     new Intl.DateTimeFormat("en-US", {
       timeZone: "America/New_York",
@@ -1185,6 +1375,9 @@ $("symbolForm").addEventListener("submit", async (event) => {
   const input = $("symbol");
   const symbol = input.value.trim().toUpperCase();
   input.value = symbol;
+  clearJev("Waiting for the selected symbol's market data.");
+  ui.jev.switchingTo = symbol;
+  renderJev();
   const feedback = $("symbolFeedback");
   feedback.hidden = false;
   feedback.className = "symbol-feedback loading";
@@ -1199,15 +1392,22 @@ $("symbolForm").addEventListener("submit", async (event) => {
     const payload = await response.json();
     feedback.className = `symbol-feedback ${payload.accepted ? "success" : "warning"}`;
     feedback.textContent = payload.message;
-    if (!payload.accepted && ui.snapshot?.ready) input.value = ui.snapshot.meta.symbol;
+    if (!payload.accepted && ui.snapshot?.ready) {
+      input.value = ui.snapshot.meta.symbol;
+      ui.jev.switchingTo = null;
+    }
   } catch (_) {
+    ui.jev.switchingTo = null;
     feedback.className = "symbol-feedback warning";
     feedback.textContent = "Symbol lookup is unavailable; the current chart was not changed.";
   }
+  renderJev();
   window.setTimeout(() => { feedback.hidden = true; }, 5000);
 });
 
 window.addEventListener("resize", renderCharts);
+$("jevRequest").addEventListener("click", requestJev);
+setInterval(renderJev, 1000);
 setInterval(renderCurrentMarketStatus, 1000);
 setInterval(() => {
   if (ui.autoRotate) selectTimeframe(ui.timeframe === "1m" ? "5m" : "1m", true);

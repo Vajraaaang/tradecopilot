@@ -13,16 +13,28 @@ from rich.console import Console
 from rich.table import Table
 
 from tradecopilot.alerts import TransitionAlertDispatcher, WebhookAlertSink
-from tradecopilot.auth import AlpacaKeychainStorage, KeychainOAuthStorage, prompt_for_alpaca_credentials
+from tradecopilot.auth import (
+    AlpacaKeychainStorage,
+    FinnhubKeychainStorage,
+    JevKeychainStorage,
+    KeychainOAuthStorage,
+    load_finnhub_api_key,
+    load_jev_api_key,
+    prompt_for_alpaca_credentials,
+    prompt_for_finnhub_api_key,
+    prompt_for_jev_api_key,
+)
 from tradecopilot.backtest import ReplayBacktestRunner, report_summary, write_nightly_report
 from tradecopilot.chat import OpenAITradeChatAgent, TradeChatAgent
 from tradecopilot.config import StrategyConfig
 from tradecopilot.doctor import run_doctor
 from tradecopilot.explain import OpenAIExplanationAgent, SafeExplanationService
+from tradecopilot.jev import JevAdvisor
 from tradecopilot.journal import Journal
 from tradecopilot.models import CatalystEvidence, DataQuality, ExperimentCandidate, FloatEvidence, MarketFrame, RunMode
 from tradecopilot.monitor import Monitor, transition_states
 from tradecopilot.providers.base import FrameProvider
+from tradecopilot.providers.finnhub import FinnhubClient, FinnhubFrameProvider
 from tradecopilot.providers.live import LiveMcpFrameProvider, authenticate_robinhood
 from tradecopilot.providers.mock import MockProvider
 from tradecopilot.providers.replay import ReplayProvider
@@ -46,12 +58,19 @@ def build_parser() -> argparse.ArgumentParser:
     doctor.add_argument("--symbol", default="AAPL")
     doctor.add_argument("--account-last4")
     doctor.add_argument("--alpaca-feed", choices=("iex", "sip"), default="sip")
+    doctor.add_argument("--data-provider", choices=("alpaca", "finnhub"), default="alpaca")
 
     auth = subparsers.add_parser("auth", help="Store provider credentials in the operating-system keychain")
-    auth.add_argument("provider", choices=("robinhood", "alpaca"))
+    auth.add_argument("provider", choices=("robinhood", "alpaca", "jev", "finnhub"))
 
     logout = subparsers.add_parser("logout", help="Clear application credentials from the operating-system keychain")
-    logout.add_argument("provider", choices=("robinhood", "alpaca"))
+    logout.add_argument("provider", choices=("robinhood", "alpaca", "jev", "finnhub"))
+
+    subparsers.add_parser(
+        "jev-check", help="Run one paid synthetic Jev API diagnostic; does not validate trading predictions"
+    )
+    finnhub_quote = subparsers.add_parser("finnhub-quote", help="Read one Finnhub price-only quote")
+    finnhub_quote.add_argument("symbol")
 
     monitor = subparsers.add_parser("monitor", help="Monitor a selected symbol")
     monitor.add_argument("symbol")
@@ -67,6 +86,7 @@ def build_parser() -> argparse.ArgumentParser:
     monitor.add_argument("--account-last4")
     monitor.add_argument("--alpaca-feed", choices=("iex", "sip"), default="sip")
     monitor.add_argument("--scan-title")
+    monitor.add_argument("--data-provider", choices=("alpaca", "finnhub"), default="alpaca")
 
     replay = subparsers.add_parser("replay", help="Replay deterministic JSONL without look-ahead")
     replay.add_argument("path", type=Path)
@@ -93,6 +113,8 @@ def build_parser() -> argparse.ArgumentParser:
     serve.add_argument("--account-last4")
     serve.add_argument("--alpaca-feed", choices=("iex", "sip"), default="sip")
     serve.add_argument("--scan-title")
+    serve.add_argument("--data-provider", choices=("alpaca", "finnhub"), default="alpaca")
+    serve.add_argument("--jev", action="store_true", help="Enable Jev advice in live mode using Typesafe credit")
 
     report = subparsers.add_parser("report", help="Summarize a journal date")
     report.add_argument("--date", required=True, type=date.fromisoformat)
@@ -138,27 +160,34 @@ def main(argv: Sequence[str] | None = None) -> None:
 def _dispatch(args: argparse.Namespace) -> int:
     config = StrategyConfig()
     if args.command == "doctor":
-        return _doctor(args.db, config, args.symbol, args.account_last4, args.alpaca_feed)
+        return _doctor(args.db, config, args.symbol, args.account_last4, args.alpaca_feed, args.data_provider)
     if args.command == "auth":
         return asyncio.run(_auth(args.provider))
     if args.command == "logout":
         return asyncio.run(_logout(args.provider))
+    if args.command == "jev-check":
+        result = _jev_advisor().check()
+        CONSOLE.print_json(json.dumps(result))
+        return 0 if result.get("status") == "available" else 1
+    if args.command == "finnhub-quote":
+        return _finnhub_quote(args.symbol)
     if args.command == "replay":
         return asyncio.run(_replay(args.path, args.speed, args.db, args.compact, config))
     if args.command == "app":
         return _app(args.mode, args.replay, args.speed, args.port, args.no_open, args.db, config)
     if args.command == "serve":
+        if args.data_provider == "finnhub" and args.mode != "live":
+            raise ValueError("--data-provider finnhub requires --mode live")
+        if args.jev and args.mode != "live":
+            raise ValueError("--jev requires --mode live")
         if args.mode == "replay":
             return _app("replay", args.replay, args.speed, args.port, args.no_open, args.db, config)
-        provider = LiveMcpFrameProvider(
-            args.symbol,
-            args.account_last4,
-            config,
-            alpaca_feed=args.alpaca_feed,
-            scan_title=args.scan_title,
-        )
-        return _serve_provider(provider, args.port, args.no_open, args.db, config)
+        jev_advisor = _jev_advisor() if args.jev else None
+        provider = _live_provider(args, config)
+        return _serve_provider(provider, args.port, args.no_open, args.db, config, jev_advisor=jev_advisor)
     if args.command == "monitor":
+        if args.data_provider == "finnhub" and args.mode != "live":
+            raise ValueError("--data-provider finnhub requires --mode live")
         _validate_manual_evidence(args)
         config = StrategyConfig.model_validate(
             {
@@ -168,16 +197,7 @@ def _dispatch(args: argparse.Namespace) -> int:
             }
         )
         if args.mode == "live":
-            manual_float, manual_catalyst = _manual_evidence(args)
-            provider = LiveMcpFrameProvider(
-                args.symbol,
-                args.account_last4,
-                config,
-                alpaca_feed=args.alpaca_feed,
-                scan_title=args.scan_title,
-                manual_float=manual_float,
-                manual_catalyst=manual_catalyst,
-            )
+            provider = _live_provider(args, config)
             return asyncio.run(_live_monitor(provider, args.db, config))
         if args.symbol.upper() != "YXT":
             raise ValueError("mock mode currently provides only the synthetic YXT fixture")
@@ -219,12 +239,15 @@ def _doctor(
     symbol: str,
     account_last4: str | None,
     alpaca_feed: str,
+    data_provider: str = "alpaca",
 ) -> int:
     table = Table(title="tradecopilot doctor (read-only)")
     table.add_column("Check")
     table.add_column("Status")
     table.add_column("Detail")
-    checks = run_doctor(path, config, symbol=symbol, account_last4=account_last4, alpaca_feed=alpaca_feed)
+    checks = run_doctor(
+        path, config, symbol=symbol, account_last4=account_last4, alpaca_feed=alpaca_feed, data_provider=data_provider
+    )
     for check in checks:
         table.add_row(check.name, "PASS" if check.ok else "DEGRADED", check.detail)
     CONSOLE.print(table)
@@ -232,6 +255,14 @@ def _doctor(
 
 
 async def _auth(provider: str) -> int:
+    if provider == "finnhub":
+        await FinnhubKeychainStorage().set_api_key(prompt_for_finnhub_api_key())
+        CONSOLE.print("Finnhub API key stored in the operating-system keychain.")
+        return 0
+    if provider == "jev":
+        await JevKeychainStorage().set_api_key(prompt_for_jev_api_key())
+        CONSOLE.print("Typesafe Jev API key stored in the operating-system keychain.")
+        return 0
     if provider == "alpaca":
         api_key, secret_key = prompt_for_alpaca_credentials()
         await AlpacaKeychainStorage().set_credentials(api_key, secret_key)
@@ -247,12 +278,55 @@ async def _auth(provider: str) -> int:
 
 
 async def _logout(provider: str) -> int:
-    if provider == "alpaca":
+    if provider == "finnhub":
+        await FinnhubKeychainStorage().clear()
+    elif provider == "jev":
+        await JevKeychainStorage().clear()
+    elif provider == "alpaca":
         await AlpacaKeychainStorage().clear()
     else:
         await KeychainOAuthStorage().clear()
     CONSOLE.print(f"Cleared local {provider} credentials from the operating-system keychain.")
     return 0
+
+
+def _jev_advisor() -> JevAdvisor:
+    api_key = asyncio.run(load_jev_api_key())
+    if not api_key:
+        raise ValueError("Jev API key is missing; run `tradecopilot auth jev` or set TYPESAFE_API_KEY")
+    return JevAdvisor(api_key)
+
+
+def _finnhub_api_key() -> str:
+    api_key = asyncio.run(load_finnhub_api_key())
+    if not api_key:
+        raise ValueError("Finnhub API key is missing; run `tradecopilot auth finnhub` or set FINNHUB_API_KEY")
+    return api_key
+
+
+def _finnhub_quote(symbol: str) -> int:
+    api_key = _finnhub_api_key()
+    try:
+        quote = FinnhubClient(api_key).quote(symbol)
+    except Exception:
+        raise ConnectionError("Finnhub quote unavailable; check the symbol, credentials, or provider status.") from None
+    CONSOLE.print_json(json.dumps(quote.model_dump(mode="json")))
+    return 0
+
+
+def _live_provider(args: argparse.Namespace, config: StrategyConfig) -> FrameProvider:
+    if args.data_provider == "finnhub":
+        return FinnhubFrameProvider(args.symbol, _finnhub_api_key())
+    manual_float, manual_catalyst = _manual_evidence(args) if args.command == "monitor" else (None, None)
+    return LiveMcpFrameProvider(
+        args.symbol,
+        args.account_last4,
+        config,
+        alpaca_feed=args.alpaca_feed,
+        scan_title=args.scan_title,
+        manual_float=manual_float,
+        manual_catalyst=manual_catalyst,
+    )
 
 
 async def _replay(
@@ -367,6 +441,8 @@ def _serve_provider(
     no_open: bool,
     database_path: Path,
     config: StrategyConfig,
+    *,
+    jev_advisor: JevAdvisor | None = None,
 ) -> int:
     serve_dashboard(
         provider,
@@ -379,6 +455,7 @@ def _serve_provider(
         symbol_selector=getattr(provider, "select_symbol", None),
         explanation_service=_explanation_service(),
         alert_dispatcher=_alert_dispatcher(),
+        jev_advisor=jev_advisor,
     )
     return 0
 

@@ -43,6 +43,17 @@ class DecisionEngine:
         quote = frame.quote
         previous_state = self.previous_decision.state if self.previous_decision else None
         if quote is None:
+            if frame.price_snapshot is not None:
+                return self._finish(
+                    self._decision(
+                        frame,
+                        DecisionState.DATA_INSUFFICIENT,
+                        ("Price-only feed: bid/ask and minute OHLCV data are unavailable",),
+                        failed=("complete_market_data",),
+                        missing=("bid/ask quote", "minute OHLCV bars", "account/position risk context"),
+                        changes=("Connect complete market and account data before using strategy or Jev advice",),
+                    )
+                )
             return self._finish(
                 self._decision(
                     frame,
@@ -800,10 +811,11 @@ class DecisionEngine:
         crossing_fresh: bool = False,
     ) -> StrategyDecision:
         quote = frame.quote
+        price = quote or frame.price_snapshot
         source_timestamps = tuple(
             sorted(
                 {
-                    *([quote.provider_timestamp] if quote else []),
+                    *([price.provider_timestamp] if price else []),
                     *(bar.provider_timestamp for bar in frame.bars_1m[-2:]),
                     *(snapshot.provider_timestamp for snapshot in frame.level2_history[-3:]),
                 }
@@ -828,7 +840,7 @@ class DecisionEngine:
             if prior_above_ema9 != current_above_ema9:
                 changed_parts.append("price reclaimed EMA9" if current_above_ema9 else "price lost EMA9")
         changed = "; ".join(changed_parts)
-        decision_provider_time = quote.provider_timestamp if quote else frame.event_time
+        decision_provider_time = price.provider_timestamp if price else frame.event_time
         decision_age = max(0.0, (frame.event_time - decision_provider_time).total_seconds())
         return StrategyDecision(
             provider_timestamp=decision_provider_time,
@@ -842,7 +854,7 @@ class DecisionEngine:
                 if state == DecisionState.DATA_INSUFFICIENT
                 else DataQuality.GOOD
             ),
-            symbol=quote.symbol if quote else "UNKNOWN",
+            symbol=price.symbol if price else "UNKNOWN",
             state=state,
             previous_state=previous_state,
             strategy_id=self.config.strategy_id,
@@ -861,7 +873,7 @@ class DecisionEngine:
             trade_plan=plan,
             position=position if position is not None else frame.position,
             exit_signals=exit_signals,
-            current_price=quote.last if quote else None,
+            current_price=price.last if price else None,
             crossing_fresh=crossing_fresh,
             changed_summary=changed,
         )

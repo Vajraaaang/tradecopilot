@@ -163,16 +163,20 @@ def _observation(
         for bar in (*frame.bars_1m[-3:], *frame.bars_5m[-2:])
     )
     quote = frame.quote
+    price = quote or frame.price_snapshot
     level2 = frame.level2_history[-1] if frame.level2_history else None
     market_snapshot = {
-        "quote_timestamp": quote.provider_timestamp.isoformat() if quote else None,
+        "quote_timestamp": price.provider_timestamp.isoformat() if price else None,
         "bid": str(quote.bid) if quote else None,
         "ask": str(quote.ask) if quote else None,
-        "last": str(quote.last) if quote else None,
+        "last": str(price.last) if price else None,
         "total_volume": quote.total_volume if quote else None,
         "gap_percent": str(frame.gap_percent) if frame.gap_percent is not None else None,
         "resistance_levels": [str(value) for value in frame.resistance_levels],
     }
+    if quote is None and frame.price_snapshot is not None:
+        market_snapshot["price_source"] = frame.price_snapshot.source
+        market_snapshot["price_only"] = True
     supplemental = {
         "float": frame.float_evidence.model_dump(mode="json") if frame.float_evidence else None,
         "catalyst": (frame.catalyst_evidence.model_dump(mode="json") if frame.catalyst_evidence else None),
