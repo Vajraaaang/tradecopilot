@@ -19,6 +19,14 @@ from tradecopilot.models import DataQuality, MarketFrame, PriceSnapshot, RunMode
 _SYMBOL = re.compile(r"[A-Z][A-Z0-9.-]{0,9}")
 
 
+class FinnhubQuoteError(ConnectionError):
+    """Sanitized failure with a retry classification, compatible with existing ConnectionError handlers."""
+
+    def __init__(self, *, retryable: bool) -> None:
+        super().__init__("Finnhub did not provide a valid price and timestamp; no retry was made")
+        self.retryable = retryable
+
+
 def _normalize_symbol(value: str) -> str:
     symbol = value.strip().upper()
     if not _SYMBOL.fullmatch(symbol):
@@ -46,15 +54,19 @@ def _get_quote(symbol: str, api_key: str) -> dict[str, Any]:
         response = connection.getresponse()
         body = response.read(16_385)
         if response.status != 200:
-            raise ConnectionError(f"Finnhub quote request failed (HTTP {response.status}); no retry was made")
+            raise FinnhubQuoteError(retryable=response.status == 429 or response.status >= 500)
         if len(body) > 16_384:
-            raise ConnectionError("Finnhub quote response exceeded the size limit")
+            raise FinnhubQuoteError(retryable=False)
         payload = json.loads(body)
         if not isinstance(payload, dict):
-            raise ConnectionError("Finnhub quote response was invalid")
+            raise FinnhubQuoteError(retryable=False)
         return payload
-    except (OSError, http.client.HTTPException, ValueError):
-        raise ConnectionError("Finnhub quote is unavailable; check the key, symbol and provider status") from None
+    except FinnhubQuoteError:
+        raise
+    except ValueError:
+        raise FinnhubQuoteError(retryable=False) from None
+    except (OSError, http.client.HTTPException):
+        raise FinnhubQuoteError(retryable=True) from None
     finally:
         connection.close()
 
@@ -116,9 +128,11 @@ class FinnhubClient:
                 source="finnhub_quote",
                 quality=DataQuality.STALE if age > 2 else DataQuality.LIMITED,
             )
-        except Exception:
+        except FinnhubQuoteError:
+            raise
+        except Exception as error:
             # Neither raw provider bodies nor exception text may disclose the supplied API key.
-            raise ConnectionError("Finnhub did not provide a valid price and timestamp; no retry was made") from None
+            raise FinnhubQuoteError(retryable=isinstance(error, OSError | http.client.HTTPException)) from None
 
 
 class FinnhubFrameProvider:

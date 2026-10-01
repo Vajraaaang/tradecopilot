@@ -1,9 +1,44 @@
-# tradecopilot
+# TradeCopilot — Jev forecasting and evaluation
 
-`tradecopilot` is a deterministic terminal monitor and local visual desk for
-the Ross first-pullback low-float momentum setup. It is analysis and alerting
-software only: it never places, previews/reviews, modifies, replaces, or
-cancels an order. Every action in Robinhood remains manual.
+TradeCopilot combines a price-forecasting research pipeline with a deterministic
+terminal monitor and local visual desk for the Ross first-pullback momentum
+setup. The forecasting workflow records market observations, builds causal
+features, compares CPU baselines, and evaluates opt-in Jev forecasts against
+subsequently observed outcomes. It is analysis software: it never places,
+previews, modifies, replaces, or cancels an order.
+
+## Forecasting quick start
+
+Run the complete synthetic demonstration without credentials or API charges:
+
+```bash
+uv sync --frozen
+uv run tradecopilot forecast demo --output-dir .tradecopilot/forecast/demo
+uv run tradecopilot forecast serve .tradecopilot/forecast/demo/run/report.json --open
+```
+
+The report compares training-class prior, momentum, logistic regression, and
+validation-calibrated logistic regression on a chronological holdout. The optional
+Jev contract fixture is a **local stub**, visibly labeled as such. Synthetic
+results demonstrate the software workflow and are not real-market performance.
+
+The forecast target is **UP / FLAT / DOWN after 15 minutes**, with a fixed ±10
+basis-point neutral band. This gives the model a measurable outcome; the existing
+BUY / HOLD / SELL market-opinion panel remains a separate informational feature.
+The new report shows probability quality, coverage, abstentions, failures,
+latency, cost estimates, and prediction-versus-outcome examples.
+
+Features include durable SQLite collection, exchange-calendar session checks,
+event/receipt timestamp separation, immutable hashed datasets and run artifacts,
+JSON model export, per-class reliability diagrams, and a read-only report server.
+CPU preprocessing fits on training data; temperature calibration fits only on
+validation data. The test split does not select thresholds or model parameters.
+
+For real data collection, guarded Jev pilots, Docker, and evaluation limitations,
+see [the forecasting guide](docs/forecasting.md). No model has demonstrated
+profitable trading or generalizable market accuracy in this repository.
+The [validation snapshot](docs/validation-2026-10-01.md) records executed checks
+and the limits of the small prospective pilot.
 
 The visual desk follows the supplied Robinhood Legend workspace and the
 supplied Solana color reference. Its feather and four chart-tool SVGs use exact
@@ -12,16 +47,16 @@ application code or account data is embedded.
 
 ## Install
 
-Requirements: [uv](https://docs.astral.sh/uv/) and Node.js 24 LTS. `uv`
-installs the project Python runtime. Node 24 is prepared for the dashboard, but
-the current static frontend has no npm install step.
+Requirements: [uv](https://docs.astral.sh/uv/) and Python 3.12 or newer. `uv`
+can install Python. Both dashboards use bundled static assets; Node.js and an
+npm installation are unnecessary.
 
 ```bash
-cd /Users/vajraang/tradecopilot
-source ~/.nvm/nvm.sh
-nvm use 24
-uv sync --all-groups --extra openai
-cp .env.example .env
+git clone https://github.com/Vajraaaang/tradecopilot.git
+cd tradecopilot
+uv sync --frozen
+# Optional OpenAI chat/explanations:
+# uv sync --frozen --extra openai
 ```
 
 Replay and deterministic explanations require no broker credentials or OpenAI
