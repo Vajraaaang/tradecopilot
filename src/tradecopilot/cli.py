@@ -13,12 +13,20 @@ from rich.console import Console
 from rich.table import Table
 
 from tradecopilot.alerts import TransitionAlertDispatcher, WebhookAlertSink
-from tradecopilot.auth import AlpacaKeychainStorage, KeychainOAuthStorage, prompt_for_alpaca_credentials
+from tradecopilot.auth import (
+    AlpacaKeychainStorage,
+    JevKeychainStorage,
+    KeychainOAuthStorage,
+    load_jev_api_key,
+    prompt_for_alpaca_credentials,
+    prompt_for_jev_api_key,
+)
 from tradecopilot.backtest import ReplayBacktestRunner, report_summary, write_nightly_report
 from tradecopilot.chat import OpenAITradeChatAgent, TradeChatAgent
 from tradecopilot.config import StrategyConfig
 from tradecopilot.doctor import run_doctor
 from tradecopilot.explain import OpenAIExplanationAgent, SafeExplanationService
+from tradecopilot.jev import JevAdvisor
 from tradecopilot.journal import Journal
 from tradecopilot.models import CatalystEvidence, DataQuality, ExperimentCandidate, FloatEvidence, MarketFrame, RunMode
 from tradecopilot.monitor import Monitor, transition_states
@@ -48,10 +56,14 @@ def build_parser() -> argparse.ArgumentParser:
     doctor.add_argument("--alpaca-feed", choices=("iex", "sip"), default="sip")
 
     auth = subparsers.add_parser("auth", help="Store provider credentials in the operating-system keychain")
-    auth.add_argument("provider", choices=("robinhood", "alpaca"))
+    auth.add_argument("provider", choices=("robinhood", "alpaca", "jev"))
 
     logout = subparsers.add_parser("logout", help="Clear application credentials from the operating-system keychain")
-    logout.add_argument("provider", choices=("robinhood", "alpaca"))
+    logout.add_argument("provider", choices=("robinhood", "alpaca", "jev"))
+
+    subparsers.add_parser(
+        "jev-check", help="Run one paid synthetic Jev API diagnostic; does not validate trading predictions"
+    )
 
     monitor = subparsers.add_parser("monitor", help="Monitor a selected symbol")
     monitor.add_argument("symbol")
@@ -93,6 +105,7 @@ def build_parser() -> argparse.ArgumentParser:
     serve.add_argument("--account-last4")
     serve.add_argument("--alpaca-feed", choices=("iex", "sip"), default="sip")
     serve.add_argument("--scan-title")
+    serve.add_argument("--jev", action="store_true", help="Enable Jev advice in live mode using Typesafe credit")
 
     report = subparsers.add_parser("report", help="Summarize a journal date")
     report.add_argument("--date", required=True, type=date.fromisoformat)
@@ -143,13 +156,20 @@ def _dispatch(args: argparse.Namespace) -> int:
         return asyncio.run(_auth(args.provider))
     if args.command == "logout":
         return asyncio.run(_logout(args.provider))
+    if args.command == "jev-check":
+        result = _jev_advisor().check()
+        CONSOLE.print_json(json.dumps(result))
+        return 0 if result.get("status") == "available" else 1
     if args.command == "replay":
         return asyncio.run(_replay(args.path, args.speed, args.db, args.compact, config))
     if args.command == "app":
         return _app(args.mode, args.replay, args.speed, args.port, args.no_open, args.db, config)
     if args.command == "serve":
+        if args.jev and args.mode != "live":
+            raise ValueError("--jev requires --mode live")
         if args.mode == "replay":
             return _app("replay", args.replay, args.speed, args.port, args.no_open, args.db, config)
+        jev_advisor = _jev_advisor() if args.jev else None
         provider = LiveMcpFrameProvider(
             args.symbol,
             args.account_last4,
@@ -157,7 +177,7 @@ def _dispatch(args: argparse.Namespace) -> int:
             alpaca_feed=args.alpaca_feed,
             scan_title=args.scan_title,
         )
-        return _serve_provider(provider, args.port, args.no_open, args.db, config)
+        return _serve_provider(provider, args.port, args.no_open, args.db, config, jev_advisor=jev_advisor)
     if args.command == "monitor":
         _validate_manual_evidence(args)
         config = StrategyConfig.model_validate(
@@ -232,6 +252,10 @@ def _doctor(
 
 
 async def _auth(provider: str) -> int:
+    if provider == "jev":
+        await JevKeychainStorage().set_api_key(prompt_for_jev_api_key())
+        CONSOLE.print("Typesafe Jev API key stored in the operating-system keychain.")
+        return 0
     if provider == "alpaca":
         api_key, secret_key = prompt_for_alpaca_credentials()
         await AlpacaKeychainStorage().set_credentials(api_key, secret_key)
@@ -247,12 +271,21 @@ async def _auth(provider: str) -> int:
 
 
 async def _logout(provider: str) -> int:
-    if provider == "alpaca":
+    if provider == "jev":
+        await JevKeychainStorage().clear()
+    elif provider == "alpaca":
         await AlpacaKeychainStorage().clear()
     else:
         await KeychainOAuthStorage().clear()
     CONSOLE.print(f"Cleared local {provider} credentials from the operating-system keychain.")
     return 0
+
+
+def _jev_advisor() -> JevAdvisor:
+    api_key = asyncio.run(load_jev_api_key())
+    if not api_key:
+        raise ValueError("Jev API key is missing; run `tradecopilot auth jev` or set TYPESAFE_API_KEY")
+    return JevAdvisor(api_key)
 
 
 async def _replay(
@@ -367,6 +400,8 @@ def _serve_provider(
     no_open: bool,
     database_path: Path,
     config: StrategyConfig,
+    *,
+    jev_advisor: JevAdvisor | None = None,
 ) -> int:
     serve_dashboard(
         provider,
@@ -379,6 +414,7 @@ def _serve_provider(
         symbol_selector=getattr(provider, "select_symbol", None),
         explanation_service=_explanation_service(),
         alert_dispatcher=_alert_dispatcher(),
+        jev_advisor=jev_advisor,
     )
     return 0
 

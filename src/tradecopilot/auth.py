@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import getpass
 import json
+import os
 import queue
 import threading
 import webbrowser
@@ -32,6 +33,8 @@ _TOKEN_KEY = "oauth-token"
 _CLIENT_KEY = "oauth-client"
 ALPACA_KEYCHAIN_SERVICE = "tradecopilot.alpaca-market-data"
 _ALPACA_CREDENTIALS_KEY = "api-credentials"
+JEV_KEYCHAIN_SERVICE = "tradecopilot.typesafe-jev"
+_JEV_API_KEY = "api-key"
 
 
 class KeychainOAuthStorage:
@@ -114,6 +117,38 @@ def prompt_for_alpaca_credentials() -> tuple[str, str]:
     if not api_key or not secret_key:
         raise ValueError("Alpaca API key and secret are required")
     return api_key, secret_key
+
+
+class JevKeychainStorage:
+    """Store the Typesafe Jev API key only in the operating-system keychain."""
+
+    def __init__(self, service_name: str = JEV_KEYCHAIN_SERVICE) -> None:
+        self.service_name = service_name
+
+    async def set_api_key(self, api_key: str) -> None:
+        if not api_key.strip():
+            raise ValueError("Jev API key is required")
+        await asyncio.to_thread(keyring.set_password, self.service_name, _JEV_API_KEY, api_key.strip())
+
+    async def get_api_key(self) -> str | None:
+        api_key = await asyncio.to_thread(keyring.get_password, self.service_name, _JEV_API_KEY)
+        return api_key.strip() or None if api_key else None
+
+    async def clear(self) -> None:
+        with suppress(PasswordDeleteError):
+            await asyncio.to_thread(keyring.delete_password, self.service_name, _JEV_API_KEY)
+
+
+async def load_jev_api_key() -> str | None:
+    api_key = os.getenv("TYPESAFE_API_KEY", "").strip()
+    return api_key or await JevKeychainStorage().get_api_key()
+
+
+def prompt_for_jev_api_key() -> str:
+    api_key = getpass.getpass("Typesafe Jev API key (stored in operating-system keychain): ").strip()
+    if not api_key:
+        raise ValueError("Jev API key is required")
+    return api_key
 
 
 class LoopbackOAuthFlow:

@@ -3,15 +3,17 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import math
 import re
 import threading
 import webbrowser
 from collections.abc import Callable, Mapping
+from datetime import UTC, datetime
 from decimal import Decimal
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 from urllib.parse import urlparse
 from zoneinfo import ZoneInfo
 
@@ -27,12 +29,16 @@ from tradecopilot.models import DecisionState, MarketFrame, OHLCVBar, StrategyDe
 from tradecopilot.monitor import Monitor
 from tradecopilot.providers.base import FrameProvider
 
+if TYPE_CHECKING:
+    from tradecopilot.jev import JevAdvisor
+
 EASTERN = ZoneInfo("America/New_York")
 PACIFIC = ZoneInfo("America/Los_Angeles")
 STATIC_ROOT = Path(__file__).with_name("web")
 MAX_CHAT_BYTES = 4_096
 LOGGER = logging.getLogger(__name__)
 _SYMBOL_PATTERN = re.compile(r"[A-Z][A-Z0-9.-]{0,9}")
+_JEV_BLOCKED_STATES = {"DATA_STALE", "DATA_INSUFFICIENT", "NO_TRADE", "DAY_STOP", "SELL"}
 
 
 class DashboardState:
@@ -43,10 +49,12 @@ class DashboardState:
         config: StrategyConfig,
         chat_agent: TradeChatAgent | None = None,
         symbol_selector: Callable[[str], bool] | None = None,
+        jev_advisor: JevAdvisor | None = None,
     ) -> None:
         self.config = config
         self._chat_agent = chat_agent
         self._symbol_selector = symbol_selector
+        self._jev_advisor = jev_advisor
         self._lock = threading.Lock()
         self._condition = threading.Condition(self._lock)
         self._version = 0
@@ -56,6 +64,7 @@ class DashboardState:
             "error": None,
             "safety": "Analysis only. All execution is manual.",
             "chat": self._chat_metadata(),
+            "jev": self._jev_metadata(),
             "alert": None,
         }
         self._recent_positions: dict[str, dict[str, Any]] = {}
@@ -271,6 +280,7 @@ class DashboardState:
             "history": list(self._state_history),
             "screener": _screener_rows(decision, frame),
             "chat": self._chat_metadata(),
+            "jev": self._jev_metadata(),
             "alert": self._latest_alert,
             "charts": {
                 "1m": _chart_series(frame.bars_1m, frame.bars_1m, self.config),
@@ -305,6 +315,76 @@ class DashboardState:
         with self._condition:
             self._condition.wait_for(lambda: self._version > version, timeout=timeout)
             return self._version, cast(dict[str, Any], json.loads(json.dumps(self._snapshot)))
+
+    def jev_advice(self, symbol: str, source_time: str | None = None) -> dict[str, Any]:
+        snapshot = self.snapshot()
+        meta = snapshot.get("meta", {})
+        if symbol != meta.get("symbol") or (source_time is not None and source_time != meta.get("quote_time")):
+            raise ValueError("The selected market context changed; request the current symbol again")
+        if self._jev_advisor is None:
+            return self._jev_no_advice("disabled", "Jev is not enabled for this session.", snapshot)
+        if _jev_context_blocked(snapshot, self.config.maximum_quote_age_seconds):
+            return self._jev_no_advice("blocked", "Jev requires fresh live data and an unblocked risk state.", snapshot)
+        # Hosted inference runs in this HTTP worker, outside the snapshot lock and monitor loop.
+        try:
+            result = self._jev_advisor.advise(snapshot)
+        except Exception:
+            LOGGER.warning("Jev advisory unavailable; the deterministic decision is unchanged")
+            result = self._jev_no_advice(
+                "unavailable", "Jev is unavailable. The engine remains authoritative.", snapshot,
+            )
+        current = self.snapshot()
+        context_changed = (
+            _jev_context_blocked(current, self.config.maximum_quote_age_seconds)
+            or _jev_context_identity(current) != _jev_context_identity(snapshot)
+        )
+        if context_changed or not _jev_result_matches(result, snapshot):
+            result = self._jev_no_advice(
+                "blocked", "Market context changed or expired. Request a fresh assessment.", current,
+            )
+        if result.get("status") not in {"available", "uncertain"}:
+            result = {
+                **result,
+                "symbol": result.get("symbol") or meta.get("symbol"),
+                "source_time": result.get("source_time") or meta.get("quote_time"),
+            }
+        metadata = self._jev_metadata()
+        with self._condition:
+            self._snapshot = {**self._snapshot, "jev": metadata}
+            self._version += 1
+            self._condition.notify_all()
+        return {**result, **metadata}
+
+    def _jev_metadata(self) -> dict[str, Any]:
+        if self._jev_advisor is not None:
+            return {
+                **self._jev_advisor.metadata(),
+                "maximum_quote_age_seconds": self.config.maximum_quote_age_seconds,
+            }
+        return {
+            "enabled": False,
+            "model": "jev",
+            "requests_used": 0,
+            "request_limit": 100,
+            "estimated_cost_usd": 0.0,
+            "maximum_quote_age_seconds": self.config.maximum_quote_age_seconds,
+        }
+
+    def _jev_no_advice(self, status: str, message: str, snapshot: Mapping[str, Any]) -> dict[str, Any]:
+        meta = snapshot.get("meta", {})
+        return {
+            **self._jev_metadata(),
+            "status": status,
+            "action": None,
+            "probabilities": {},
+            "confidence": None,
+            "message": message,
+            "symbol": meta.get("symbol"),
+            "source_time": meta.get("quote_time"),
+            "expires_at": None,
+            "input_tokens": None,
+            "cached": False,
+        }
 
     def answer(self, query: str) -> dict[str, Any]:
         snapshot = self.snapshot()
@@ -414,6 +494,65 @@ class DashboardHTTPServer(ThreadingHTTPServer):
     daemon_threads = True
 
 
+def _jev_context_blocked(snapshot: Mapping[str, Any], maximum_quote_age_seconds: float) -> bool:
+    meta = snapshot.get("meta", {})
+    if (
+        not snapshot.get("ready")
+        or snapshot.get("error")
+        or snapshot.get("complete")
+        or meta.get("mode") != "live"
+        or meta.get("state") in _JEV_BLOCKED_STATES
+        or snapshot.get("day_stop", {}).get("locked")
+        or snapshot.get("missing")
+    ):
+        return True
+    quote_age = meta.get("quote_age")
+    if not isinstance(quote_age, (int, float)) or isinstance(quote_age, bool) or not math.isfinite(quote_age):
+        return True
+    try:
+        quote_time = datetime.fromisoformat(str(meta.get("quote_time")))
+        if quote_time.tzinfo is None:
+            return True
+        wall_age = (datetime.now(UTC) - quote_time).total_seconds()
+    except ValueError:
+        return True
+    return not (0 <= quote_age <= maximum_quote_age_seconds and 0 <= wall_age <= maximum_quote_age_seconds)
+
+
+def _jev_context_identity(snapshot: Mapping[str, Any]) -> tuple[Any, ...]:
+    meta = snapshot.get("meta", {})
+    plan = snapshot.get("plan", {})
+    positions = tuple(
+        (position.get("quantity"), position.get("average_entry"))
+        for position in snapshot.get("positions", ())
+        if position.get("symbol") == meta.get("symbol")
+    )
+    return (
+        meta.get("symbol"), meta.get("state"), meta.get("position_status"),
+        snapshot.get("day_stop"), plan.get("stop"), plan.get("maximum_shares"), positions,
+    )
+
+
+def _jev_result_matches(result: Mapping[str, Any], snapshot: Mapping[str, Any]) -> bool:
+    if result.get("status") not in {"available", "uncertain"}:
+        return True
+    meta = snapshot.get("meta", {})
+    if result.get("symbol") != meta.get("symbol"):
+        return False
+    try:
+        source_time = datetime.fromisoformat(str(result.get("source_time")))
+        expected_time = datetime.fromisoformat(str(meta.get("quote_time")))
+        expiry = datetime.fromisoformat(str(result.get("expires_at")))
+        return (
+            source_time.tzinfo is not None
+            and source_time == expected_time
+            and expiry.tzinfo is not None
+            and expiry > datetime.now(UTC)
+        )
+    except ValueError:
+        return False
+
+
 def _handler(state: DashboardState) -> type[BaseHTTPRequestHandler]:
     class Handler(BaseHTTPRequestHandler):
         server_version = "Tradecopilot/0.1"
@@ -448,8 +587,10 @@ def _handler(state: DashboardState) -> type[BaseHTTPRequestHandler]:
 
         def do_POST(self) -> None:
             path = urlparse(self.path).path
-            if path not in {"/api/chat", "/api/symbol"}:
+            if path not in {"/api/chat", "/api/symbol", "/api/jev"}:
                 self.send_error(HTTPStatus.NOT_FOUND)
+                return
+            if path == "/api/jev" and not self._valid_jev_origin():
                 return
             try:
                 length = int(self.headers.get("Content-Length", "0"))
@@ -469,8 +610,39 @@ def _handler(state: DashboardState) -> type[BaseHTTPRequestHandler]:
                 return
             if path == "/api/chat":
                 self._json(state.answer(value.strip()[:1_000]))
+            elif path == "/api/jev":
+                symbol = value.strip().upper()
+                source_time = raw.get("source_time")
+                if not _SYMBOL_PATTERN.fullmatch(symbol) or (
+                    source_time is not None and not isinstance(source_time, str)
+                ):
+                    self.send_error(HTTPStatus.BAD_REQUEST)
+                    return
+                try:
+                    self._json(state.jev_advice(symbol, source_time))
+                except ValueError:
+                    self.send_error(HTTPStatus.CONFLICT, "Market context changed")
             else:
                 self._json(state.select_symbol(value.strip()[:10]))
+
+        def _valid_jev_origin(self) -> bool:
+            if self.headers.get_content_type() != "application/json":
+                self.send_error(HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
+                return False
+            port = cast(DashboardHTTPServer, self.server).server_port
+            host = self.headers.get("Host", "")
+            allowed_hosts = {f"127.0.0.1:{port}", f"localhost:{port}"}
+            origin = self.headers.get("Origin")
+            if (
+                len(self.headers.get_all("Host", [])) != 1
+                or len(self.headers.get_all("Origin", [])) > 1
+                or host not in allowed_hosts
+                or (origin is not None and origin != f"http://{host}")
+                or self.headers.get("Sec-Fetch-Site") not in {None, "same-origin", "none"}
+            ):
+                self.send_error(HTTPStatus.FORBIDDEN)
+                return False
+            return True
 
         def _json(self, value: Mapping[str, Any]) -> None:
             payload = json.dumps(value, separators=(",", ":")).encode()
@@ -595,11 +767,12 @@ def serve_dashboard(
     symbol_selector: Callable[[str], bool] | None = None,
     explanation_service: SafeExplanationService | None = None,
     alert_dispatcher: TransitionAlertDispatcher | None = None,
+    jev_advisor: JevAdvisor | None = None,
 ) -> None:
     if not 0 <= port <= 65_535:
         raise ValueError("port must be between 0 and 65535")
     active_console = console or Console()
-    state = DashboardState(config, chat_agent=chat_agent, symbol_selector=symbol_selector)
+    state = DashboardState(config, chat_agent=chat_agent, symbol_selector=symbol_selector, jev_advisor=jev_advisor)
     server = create_dashboard_server(state, port)
     selected_port = server.server_address[1]
     url = f"http://127.0.0.1:{selected_port}/"

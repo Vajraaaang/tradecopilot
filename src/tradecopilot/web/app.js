@@ -22,6 +22,7 @@ const ui = {
   drawings: { "1m": [], "5m": [] },
   alertsEnabled: typeof Notification !== "undefined" && Notification.permission === "granted",
   lastAlertSequence: 0,
+  jev: { result: null, pending: false, requestId: 0, notice: "", offline: false, switchingTo: null },
 };
 
 const $ = (id) => document.getElementById(id);
@@ -70,7 +71,13 @@ function deliverBrowserAlert(alert) {
 }
 
 function renderSnapshot(snapshot) {
+  if (ui.snapshot && jevContextKey(ui.snapshot) !== jevContextKey(snapshot)) {
+    clearJev("Market context changed. Request a fresh assessment.");
+  }
   ui.snapshot = snapshot;
+  ui.jev.offline = false;
+  if (snapshot.meta?.symbol === ui.jev.switchingTo) ui.jev.switchingTo = null;
+  renderJev();
   if (!snapshot.ready) return;
   const meta = snapshot.meta;
   const quote = snapshot.quote;
@@ -125,6 +132,142 @@ function renderSnapshot(snapshot) {
   renderCharts();
 }
 
+function jevContextKey(snapshot) {
+  const meta = snapshot?.meta || {};
+  const positions = (snapshot?.positions || [])
+    .filter((position) => position.symbol === meta.symbol)
+    .map((position) => [position.quantity, position.average_entry]);
+  return JSON.stringify([
+    meta.symbol, meta.state, meta.position_status, snapshot?.day_stop,
+    snapshot?.plan?.stop, snapshot?.plan?.maximum_shares, positions,
+  ]);
+}
+
+function clearJev(message = "") {
+  ui.jev.requestId += 1;
+  ui.jev.result = null;
+  ui.jev.pending = false;
+  ui.jev.notice = message;
+}
+
+function jevBlockedReason(snapshot) {
+  if (!snapshot?.jev?.enabled) return "Jev is off for this session.";
+  if (!snapshot.ready) return "Waiting for market data.";
+  if (ui.jev.switchingTo) return "Waiting for the selected symbol's market data.";
+  if (snapshot.meta.mode !== "live") return "Jev requests are disabled in replay and mock mode. Use a live feed.";
+  if (snapshot.error || snapshot.complete || ui.jev.offline) return "The live feed is unavailable. Jev results are cleared.";
+  if (["DATA_STALE", "DATA_INSUFFICIENT", "NO_TRADE", "DAY_STOP", "SELL"].includes(snapshot.meta.state) || snapshot.day_stop?.locked) {
+    return `Jev is paused while the engine reports ${snapshot.meta.state}. Follow the engine's risk guidance.`;
+  }
+  const ageLimit = Number(snapshot.jev.maximum_quote_age_seconds) || 2;
+  const wallAge = (Date.now() - Date.parse(snapshot.meta.quote_time)) / 1000;
+  const quoteAge = snapshot.meta.quote_age;
+  if (snapshot.missing?.length || typeof quoteAge !== "number" || !Number.isFinite(quoteAge)
+      || quoteAge < 0 || quoteAge > ageLimit || !Number.isFinite(wallAge) || wallAge < 0 || wallAge > ageLimit) {
+    return "Market data is stale or incomplete. Jev results are cleared.";
+  }
+  return "";
+}
+
+function renderJev() {
+  const snapshot = ui.snapshot;
+  const metadata = snapshot?.jev || { enabled: false, requests_used: 0, request_limit: 100, estimated_cost_usd: 0 };
+  const blocked = jevBlockedReason(snapshot);
+  let result = ui.jev.result;
+  if (result && (blocked || result.contextKey !== jevContextKey(snapshot))) {
+    clearJev(blocked || "Market context changed. Request a fresh assessment.");
+    result = null;
+  }
+  if (result && ["available", "uncertain"].includes(result.status)
+      && (!Number.isFinite(Date.parse(result.expires_at)) || Date.parse(result.expires_at) <= Date.now())) {
+    clearJev("The assessment expired. Request a fresh view of the current data.");
+    result = null;
+  }
+  const used = Number(metadata.requests_used) || 0;
+  const limit = Number(metadata.request_limit) || 100;
+  const remaining = Math.max(0, limit - used);
+  const button = $("jevRequest");
+  button.disabled = ui.jev.pending || Boolean(blocked) || remaining === 0;
+  button.textContent = ui.jev.pending ? "Checking…" : "Ask Jev";
+  button.setAttribute("aria-busy", String(ui.jev.pending));
+  setText("jevStatus", ui.jev.pending ? "CHECKING" : result ? result.status.replaceAll("_", " ").toUpperCase() : blocked ? "PAUSED" : "READY");
+  if (!metadata.enabled) setText("jevStatus", "OFF");
+  setText("jevResult", result?.action ? `Model view: ${result.action}` : "");
+  const details = [result?.model || metadata.model].filter(Boolean);
+  if (result && ["available", "uncertain"].includes(result.status)) {
+    if (Number.isFinite(result.confidence)) details.push(`${(result.confidence * 100).toFixed(1)}% decision confidence`);
+    if (Number.isFinite(Date.parse(result.source_time))) {
+      details.push(`as of ${new Date(result.source_time).toLocaleTimeString([], { hour12: false, timeZoneName: "short" })}`);
+    }
+  }
+  setText("jevDetails", metadata.enabled ? details.join(" · ") : "");
+  const fallback = remaining === 0 ? "The request limit has been reached." : "Ask for a view of the current setup. Requests run only when you click.";
+  setText("jevMessage", blocked || (ui.jev.pending ? "Assessing the latest server-side market snapshot…" : result?.message || ui.jev.notice || fallback));
+  setText("jevBudget", `${remaining} / ${limit} calls remaining · estimated spend $${(Number(metadata.estimated_cost_usd) || 0).toFixed(4)}`);
+  $("jevBudget").hidden = !metadata.enabled;
+  const distribution = $("jevProbabilities");
+  distribution.replaceChildren();
+  distribution.hidden = !result || !["available", "uncertain"].includes(result.status);
+  if (!distribution.hidden) {
+    ["BUY", "HOLD", "SELL", "WAIT"].forEach((action) => {
+      const probability = Number(result.probabilities?.[action]);
+      if (!Number.isFinite(probability) || probability < 0 || probability > 1) return;
+      const cell = document.createElement("div");
+      const label = document.createElement("span");
+      label.textContent = action;
+      const value = document.createElement("b");
+      value.textContent = `${(probability * 100).toFixed(1)}%`;
+      const meter = document.createElement("meter");
+      meter.min = 0;
+      meter.max = 1;
+      meter.value = probability;
+      meter.setAttribute("aria-label", `${action} decision probability`);
+      cell.append(label, value, meter);
+      distribution.append(cell);
+    });
+  }
+}
+
+async function requestJev() {
+  if ($("jevRequest").disabled || !ui.snapshot?.ready) return;
+  const symbol = ui.snapshot.meta.symbol;
+  const contextKey = jevContextKey(ui.snapshot);
+  const requestId = ++ui.jev.requestId;
+  ui.jev.pending = true;
+  ui.jev.result = null;
+  ui.jev.notice = "";
+  renderJev();
+  try {
+    const response = await fetch("/api/jev", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ symbol }),
+    });
+    if (!response.ok) throw new Error(response.status === 409 ? "Market context changed. Request a fresh assessment." : "Jev is unavailable. The engine remains authoritative.");
+    const result = await response.json();
+    if (requestId !== ui.jev.requestId) return;
+    if (contextKey !== jevContextKey(ui.snapshot) || jevBlockedReason(ui.snapshot) || result.symbol !== symbol) {
+      clearJev("Market context changed. Request a fresh assessment.");
+      return;
+    }
+    if (["available", "uncertain"].includes(result.status)
+        && (!Number.isFinite(Date.parse(result.source_time)) || !Number.isFinite(Date.parse(result.expires_at)))) {
+      throw new Error("Jev returned an invalid assessment. Request a fresh view.");
+    }
+    ui.snapshot.jev = {
+      ...ui.snapshot.jev,
+      requests_used: Math.max(ui.snapshot.jev.requests_used || 0, result.requests_used || 0),
+      estimated_cost_usd: Math.max(ui.snapshot.jev.estimated_cost_usd || 0, result.estimated_cost_usd || 0),
+    };
+    ui.jev.result = { ...result, contextKey };
+  } catch (error) {
+    if (requestId === ui.jev.requestId) ui.jev.notice = error.message || "Jev is unavailable.";
+  } finally {
+    if (requestId === ui.jev.requestId) ui.jev.pending = false;
+    renderJev();
+  }
+}
+
 function renderPositions(positions) {
   const root = $("positions");
   root.replaceChildren();
@@ -154,7 +297,7 @@ function renderPositions(positions) {
       ["Quantity", position.quantity],
       ["Avg entry", money(position.average_entry)],
       ["Unrealized", money(position.unrealized_pnl)],
-      ["Current R", position.current_r == null ? "—" : `${number(position.current_r, 2)}R`],
+      ["Current R", position.current_r == null ? "—" : `${fixed(position.current_r, 2)}R`],
       ["MFE", money(position.mfe)],
       ["MAE", money(position.mae)],
       ["Stop", money(position.structural_stop)],
@@ -162,7 +305,7 @@ function renderPositions(positions) {
       ["VWAP", money(position.vwap)],
       ["EMA9", money(position.ema9)],
       ["Resistance", money(position.nearest_resistance)],
-      ["Quote age", position.quote_age == null ? "—" : `${number(position.quote_age, 1)}s`],
+      ["Quote age", position.quote_age == null ? "—" : `${fixed(position.quote_age, 1)}s`],
     ].forEach(([label, value]) => {
       const cell = document.createElement("div");
       const small = document.createElement("span");
@@ -751,6 +894,9 @@ async function fetchSnapshot() {
     if (!response.ok) throw new Error("snapshot unavailable");
     renderSnapshot(await response.json());
   } catch (_) {
+    ui.jev.offline = true;
+    clearJev("The live feed is unavailable. Jev results are cleared.");
+    renderJev();
     const badge = $("dataState");
     badge.textContent = "OFFLINE";
     badge.classList.remove("live");
@@ -772,6 +918,9 @@ function connectEventStream() {
     }
   });
   eventSource.onerror = () => {
+    ui.jev.offline = true;
+    clearJev("The live feed is unavailable. Jev results are cleared.");
+    renderJev();
     eventSource.close();
     eventSource = null;
     fetchSnapshot();
@@ -1185,6 +1334,9 @@ $("symbolForm").addEventListener("submit", async (event) => {
   const input = $("symbol");
   const symbol = input.value.trim().toUpperCase();
   input.value = symbol;
+  clearJev("Waiting for the selected symbol's market data.");
+  ui.jev.switchingTo = symbol;
+  renderJev();
   const feedback = $("symbolFeedback");
   feedback.hidden = false;
   feedback.className = "symbol-feedback loading";
@@ -1199,15 +1351,22 @@ $("symbolForm").addEventListener("submit", async (event) => {
     const payload = await response.json();
     feedback.className = `symbol-feedback ${payload.accepted ? "success" : "warning"}`;
     feedback.textContent = payload.message;
-    if (!payload.accepted && ui.snapshot?.ready) input.value = ui.snapshot.meta.symbol;
+    if (!payload.accepted && ui.snapshot?.ready) {
+      input.value = ui.snapshot.meta.symbol;
+      ui.jev.switchingTo = null;
+    }
   } catch (_) {
+    ui.jev.switchingTo = null;
     feedback.className = "symbol-feedback warning";
     feedback.textContent = "Symbol lookup is unavailable; the current chart was not changed.";
   }
+  renderJev();
   window.setTimeout(() => { feedback.hidden = true; }, 5000);
 });
 
 window.addEventListener("resize", renderCharts);
+$("jevRequest").addEventListener("click", requestJev);
+setInterval(renderJev, 1000);
 setInterval(renderCurrentMarketStatus, 1000);
 setInterval(() => {
   if (ui.autoRotate) selectTimeframe(ui.timeframe === "1m" ? "5m" : "1m", true);

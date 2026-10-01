@@ -172,6 +172,24 @@
           <div id="screener" class="widget-body empty-state"><p>Waiting for qualified candidates.</p></div>
         </section>
 
+        <section class="rail-widget jev-widget panel-border" aria-labelledby="jevTitle">
+          <div class="widget-head">
+            <div>
+              <span class="widget-kicker">OPTIONAL MODEL VIEW</span>
+              <h2 id="jevTitle">Jev assessment</h2>
+            </div>
+            <button id="jevRequest" class="jev-request" type="button" disabled>Ask Jev</button>
+          </div>
+          <div class="jev-body">
+            <div class="jev-summary"><b id="jevStatus">OFF</b><span id="jevResult"></span></div>
+            <p id="jevMessage" class="jev-message" role="status" aria-live="polite">Jev is off for this session.</p>
+            <p id="jevDetails" class="jev-budget"></p>
+            <div id="jevProbabilities" class="jev-probabilities" aria-label="Decision category probabilities" hidden></div>
+            <p id="jevBudget" class="jev-budget">100 calls remaining · estimated spend $0.0000</p>
+            <p class="jev-boundary">Decision probabilities are not probabilities of profit. The engine remains authoritative.</p>
+          </div>
+        </section>
+
         <section class="rail-widget copilot-widget panel-border">
           <div class="widget-head copilot-head">
             <div>

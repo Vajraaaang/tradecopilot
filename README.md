@@ -28,6 +28,66 @@ Replay and deterministic explanations require no broker credentials or OpenAI
 key. OpenAI explanations and chat require separately billed API access; a
 ChatGPT subscription cannot be linked to the API process.
 
+## Jev intraday adviser
+
+Jev is an optional second opinion in the visual desk. Click **Ask Jev** to
+evaluate the current live setup. The panel shows BUY / HOLD / SELL / WAIT
+probabilities, confidence, the source timestamp, and usage. WAIT means remaining
+flat; low confidence produces **uncertain**, not HOLD. These are model judgments
+about the supplied intraday setup, not validated probabilities of profit or
+multi-day price forecasts. Existing strategy, position and risk guards remain in
+control; Jev cannot place trades or change the strategy's signals.
+
+```bash
+# Run from the checkout containing the Jev changes.
+TRADECOPILOT_PROJECT="$(git rev-parse --show-toplevel)"
+
+# Enter the key at the hidden prompt; it is stored in the OS keychain.
+uv run --project "$TRADECOPILOT_PROJECT" tradecopilot auth jev
+
+# Optional: one small, paid API diagnostic using synthetic data.
+uv run --project "$TRADECOPILOT_PROJECT" tradecopilot jev-check
+
+# Requires the existing Alpaca market-data and Robinhood read-only setup.
+uv run --project "$TRADECOPILOT_PROJECT" tradecopilot serve \
+  --mode live --symbol AAPL --alpaca-feed iex --jev
+```
+
+`TYPESAFE_API_KEY` in the server environment takes precedence over the keychain.
+The key is never sent to the browser or saved in the repository. Use
+`tradecopilot logout jev` to remove the stored key; unset the environment variable
+as well if it is configured. Jev needs its own TypeSafe API credit, independent
+of OpenAI or ChatGPT.
+
+The trial allows **100 attempted requests total across restarts**, with a
+30-second cooldown, a 16,000-byte request limit, caching of identical recent
+requests, and zero automatic retries. Failed/timeout attempts count toward the
+limit. Merely opening or polling the dashboard spends nothing; replay/mock mode,
+stale or missing data, DAY_STOP and confirmed exits cannot trigger Jev requests.
+The usage ledger is shared across working directories and `--db` values in the
+operating system user's `Library/Application Support/tradecopilot/jev.sqlite3`.
+Keep that ledger to preserve the cap; this local cap does not cover usage in
+other TypeSafe clients or on other machines.
+
+The model is pinned to `jev-1.13.0`. TypeSafe currently lists **$0.042 per million
+input tokens**, with free output tokens. At the model's 64,000-token maximum,
+100 requests would be approximately **$0.269** at that price. Normal bounded
+requests are much smaller. The displayed cost is an estimate from provider
+usage, reserving the full context allowance for failed or unfinished calls;
+it is not a live reading of the account balance. Sources:
+[models and pricing](https://docs.typesafe.ai/models),
+[HTTP API](https://docs.typesafe.ai/api),
+[confidence](https://docs.typesafe.ai/confidence).
+
+The initial confidence threshold (0.6) is a conservative implementation default,
+not a threshold calibrated against stock returns. Request snapshots, model and
+prompt versions, probabilities, usage and timestamps are recorded in the local
+ledger for later analysis. The existing strategy backtest does not measure Jev
+accuracy. Validate it on timestamped held-out market data with a defined outcome
+horizon and trading costs before treating its judgments as predictive evidence.
+No Deep Research report is required to connect the API; it can help define that
+separate evaluation once the trading horizon and data source are fixed.
+
 ## Run
 
 ```bash
