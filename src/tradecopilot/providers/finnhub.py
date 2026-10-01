@@ -26,6 +26,15 @@ def _normalize_symbol(value: str) -> str:
     return symbol
 
 
+def _optional_price(value: Any) -> Decimal | None:
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or value <= 0:
+        return None
+    try:
+        return Decimal(str(value)) if math.isfinite(value) else None
+    except OverflowError:
+        return None
+
+
 def _get_quote(symbol: str, api_key: str) -> dict[str, Any]:
     connection = http.client.HTTPSConnection("finnhub.io", timeout=5)
     try:
@@ -82,10 +91,25 @@ class FinnhubClient:
             provider_time = datetime.fromtimestamp(payload["t"], UTC)
             receipt_time = self._clock()
             age = (receipt_time - provider_time).total_seconds()
+            session_open = _optional_price(payload.get("o"))
+            session_high = _optional_price(payload.get("h"))
+            session_low = _optional_price(payload.get("l"))
+            if (
+                session_high is not None and session_low is not None and session_high < session_low
+            ) or (
+                session_open is not None and session_high is not None and session_open > session_high
+            ) or (
+                session_open is not None and session_low is not None and session_open < session_low
+            ):
+                # Inconsistent optional context must not hide an otherwise valid last price.
+                session_open = session_high = session_low = None
             return PriceSnapshot(
                 symbol=symbol,
                 last=Decimal(str(payload["c"])),
                 previous_close=Decimal(str(payload["pc"])),
+                session_open=session_open,
+                session_high=session_high,
+                session_low=session_low,
                 provider_timestamp=provider_time,
                 receipt_timestamp=receipt_time,
                 age_seconds=age,
@@ -112,6 +136,7 @@ class FinnhubFrameProvider:
         self._symbol_lock = threading.Lock()
         self._client = client or FinnhubClient(api_key)
         self._interval = poll_interval_seconds
+        self._price_history: dict[str, dict[datetime, PriceSnapshot]] = {}
 
     def select_symbol(self, symbol: str) -> bool:
         normalized = _normalize_symbol(symbol)
@@ -123,6 +148,14 @@ class FinnhubFrameProvider:
         with self._symbol_lock:
             return self._symbol
 
+    def _history_for(self, price: PriceSnapshot) -> tuple[PriceSnapshot, ...]:
+        observations = self._price_history.setdefault(price.symbol, {})
+        observations[price.provider_timestamp] = price
+        ordered = sorted(observations.values(), key=lambda item: item.provider_timestamp)
+        self._price_history[price.symbol] = {item.provider_timestamp: item for item in ordered[-60:]}
+        # Backwards responses can be displayed, but must not see later observations.
+        return tuple(item for item in ordered if item.provider_timestamp <= price.provider_timestamp)[-60:]
+
     async def frames(self) -> AsyncIterator[MarketFrame]:
         while True:
             symbol = self._current_symbol()
@@ -133,6 +166,7 @@ class FinnhubFrameProvider:
                     mode=RunMode.LIVE,
                     quote=None,
                     price_snapshot=price,
+                    price_history=self._history_for(price),
                     bars_1m=(),
                     bars_5m=(),
                     level2_history=(),

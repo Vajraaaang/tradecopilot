@@ -104,7 +104,7 @@ def test_finnhub_symbol_change_does_not_reuse_old_price_or_allow_jev_spend(yxt_f
 
     def transport(payload: dict[str, Any], key: str) -> dict[str, Any]:
         calls.append(payload)
-        pytest.fail("Price-only market data must never spend a Jev request")
+        pytest.fail("Incomplete price context must never spend a Jev request")
 
     advisor = JevAdvisor("test-only-key", ledger_path=tmp_path / "jev.sqlite3", transport=transport)
     state = DashboardState(StrategyConfig(), jev_advisor=advisor)
@@ -142,6 +142,51 @@ def test_complete_quote_still_controls_display_when_price_snapshot_is_also_prese
     assert snapshot["quote"]["bid"] == float(frame.quote.bid)
     assert snapshot["quote"]["total_volume"] == frame.quote.total_volume
     assert snapshot["meta"]["price_only"] is False
+
+
+def test_jev_market_opinion_uses_session_context_without_broker_data(yxt_frames, tmp_path) -> None:
+    calls = []
+
+    def transport(payload, key):
+        calls.append(payload)
+        return {
+            "model": "jev-1.13.0",
+            "answers": {
+                "action": {
+                    "type": "choice",
+                    "choice": "BUY",
+                    "confidence": 0.8,
+                    "probabilities": {"BUY": 0.85, "HOLD": 0.05, "SELL": 0.05, "WAIT": 0.05},
+                }
+            },
+            "usage": {"input_tokens": 900, "output_tokens": 32},
+        }
+
+    frame = _price_frame(yxt_frames, age=8 * 3600)
+    frame = frame.model_copy(
+        update={
+            "price_snapshot": frame.price_snapshot.model_copy(
+                update={
+                    "session_open": Decimal("121"),
+                    "session_high": Decimal("125"),
+                    "session_low": Decimal("119"),
+                }
+            )
+        }
+    )
+    advisor = JevAdvisor("test-key", tmp_path / "jev.sqlite3", transport=transport)
+    state = DashboardState(StrategyConfig(), jev_advisor=advisor)
+    _update(state, frame)
+    before = state.snapshot()
+    result = state.jev_advice("AAPL")
+    assert result["status"] == "available" and result["action"] == "BUY"
+    assert result["assessment_mode"] == "market_opinion"
+    assert result["source_time"] == before["meta"]["quote_time"]
+    assert state.snapshot()["meta"] == before["meta"]
+    assert state.snapshot()["meta"]["state"] == "DATA_INSUFFICIENT"
+    assert state.snapshot()["jev"]["opinion"]["ready"] is True
+    assert calls[0]["state"]["session"]["session_high"] == 125
+    assert "positions" not in calls[0]["state"]
 
 
 def test_finnhub_browser_display_is_explicitly_limited() -> None:
@@ -205,10 +250,34 @@ const canvasText = [];
 chartFrame = () => ({ctx:{fillText(text) {canvasText.push(text);}},width:800,height:400});
 drawPriceChart([],{});
 assert.ok(canvasText.some((text) => /minute OHLCV/.test(text)));
+snapshot.jev.opinion = {ready:true,reason:'Session-summary market opinion',context_kind:'session_summary',
+  maximum_source_age_seconds:4*86400,sample_count:1};
+renderSnapshot(snapshot);
+assert.equal($('jevRequest').disabled,false);
+assert.match($('jevTitle').textContent,/market opinion/i);
+ui.jev.result = {status:'available',action:'BUY',assessment_mode:'market_opinion',context_kind:'session_summary',
+  model:'jev-test',source_time:snapshot.meta.quote_time,expires_at:new Date(Date.now()+30000).toISOString(),
+  confidence:0.8,probabilities:{BUY:0.85,HOLD:0.05,SELL:0.05,WAIT:0.05},
+  message:'Informational opinion',contextKey:jevContextKey(snapshot)};
+const changedRisk = JSON.parse(JSON.stringify(snapshot));
+changedRisk.meta.state = 'SELL';
+changedRisk.day_stop = {locked:true};
+renderSnapshot(changedRisk);
+assert.equal($('jevRequest').disabled,false);
+assert.match($('jevResult').textContent,/BUY-leaning/);
+assert.match($('jevDetails').textContent,/session summary/i);
+changedRisk.meta.quote_time = new Date(Date.now()-5*86400000).toISOString();
+changedRisk.meta.quote_age = 5*86400;
+renderSnapshot(changedRisk);
+assert.equal($('jevRequest').disabled,true);
+assert.equal($('jevResult').textContent,'');
 `;
 vm.runInNewContext(source.slice(0,source.indexOf('\nconst priceCanvas')) + runtime,{document,assert});
 """
     result = subprocess.run(
-        [node, "-e", script, str(STATIC_ROOT / "app.js")], capture_output=True, text=True, timeout=10,
+        [node, "-e", script, str(STATIC_ROOT / "app.js")],
+        capture_output=True,
+        text=True,
+        timeout=10,
     )
     assert result.returncode == 0, result.stderr

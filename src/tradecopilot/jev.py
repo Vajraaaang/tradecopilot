@@ -13,6 +13,8 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, cast
 
+from tradecopilot.market_opinion import OPINION_PROMPT_VERSION, OPINION_QUESTIONS, opinion_state
+
 JEV_MODEL = "jev-1.13.0"
 REQUEST_LIMIT = 100
 COOLDOWN_SECONDS = 30
@@ -132,6 +134,13 @@ class JevAdvisor:
         }
 
     def advise(self, snapshot: Mapping[str, Any]) -> dict[str, Any]:
+        meta = snapshot.get("meta", {})
+        if isinstance(meta, Mapping) and meta.get("price_only"):
+            try:
+                state = opinion_state(snapshot, self._clock())
+            except (ValueError, TypeError, KeyError) as exc:
+                return self._result("blocked", str(exc), assessment_mode="market_opinion")
+            return self._evaluate({"model": JEV_MODEL, "state": state, "questions": OPINION_QUESTIONS}, state)
         try:
             state = _state(snapshot, self._clock())
         except (ValueError, TypeError, KeyError):
@@ -184,13 +193,15 @@ class JevAdvisor:
                 connection.commit()
 
     def _evaluate(self, payload: dict[str, Any], state: dict[str, Any] | None) -> dict[str, Any]:
+        market_opinion = state is not None and state.get("assessment_mode") == "market_opinion"
+        prompt_version = OPINION_PROMPT_VERSION if market_opinion else PROMPT_VERSION
         try:
             encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"), allow_nan=False)
         except (ValueError, TypeError):
             return self._result("blocked", "Jev context contains invalid values.")
         if len(encoded.encode()) > MAX_REQUEST_BYTES:
             return self._result("blocked", "Jev context exceeds the trial input limit; no request was sent.")
-        fingerprint = hashlib.sha256((PROMPT_VERSION + encoded).encode()).hexdigest()
+        fingerprint = hashlib.sha256((prompt_version + encoded).encode()).hexdigest()
         request_id, cached, block = self._reserve(fingerprint, encoded, diagnostic=state is None)
         if cached is not None:
             return {**cached, **self.metadata(), "cached": True}
@@ -212,7 +223,7 @@ class JevAdvisor:
                 )
             else:
                 source_time = datetime.fromisoformat(state["source_time"])
-                expires_at = source_time + timedelta(seconds=COOLDOWN_SECONDS)
+                expires_at = (self._clock() if market_opinion else source_time) + timedelta(seconds=COOLDOWN_SECONDS)
                 result = self._result(
                     "available",
                     "Model judgment about this intraday snapshot; not a probability of profit.",
@@ -223,14 +234,30 @@ class JevAdvisor:
                     symbol=state["symbol"],
                     source_time=state["source_time"],
                     expires_at=expires_at.isoformat(),
+                    prompt_version=prompt_version,
                 )
+                if market_opinion:
+                    result.update(
+                        assessment_mode="market_opinion",
+                        context_kind=state["context_kind"],
+                        limitations=state["limitations"],
+                        message=(
+                            "Informational market opinion from "
+                            + (
+                                "recent observed prices"
+                                if state["context_kind"] == "recent_prices"
+                                else "the observed session price summary"
+                            )
+                            + "; labels indicate price bias, not a trade or position instruction."
+                        ),
+                    )
                 if self._clock() >= expires_at:
                     result.update(
                         status="unavailable", action=None, message="Jev response expired; request fresh data."
                     )
-                elif confidence < 0.6 or max(probabilities.values()) < 0.6:
+                elif confidence < 0.6 or max(probabilities.values()) < 0.6 or (market_opinion and action == "WAIT"):
                     result.update(status="uncertain", action=None, message="Jev is uncertain; no action suggested.")
-                elif _action_blocked(action, state):
+                elif not market_opinion and _action_blocked(action, state):
                     result.update(
                         status="blocked",
                         action=None,
@@ -241,6 +268,9 @@ class JevAdvisor:
             result = self._result(
                 "unavailable", "Jev is unavailable or returned an invalid response. No retry was made."
             )
+        result["prompt_version"] = prompt_version
+        if market_opinion:
+            result["assessment_mode"] = "market_opinion"
         with closing(self._connect()) as connection:
             connection.execute(
                 "UPDATE jev_attempts SET input_tokens = ?, result_json = ? WHERE id = ?",

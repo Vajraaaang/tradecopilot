@@ -31,12 +31,16 @@ ChatGPT subscription cannot be linked to the API process.
 ## Jev intraday adviser
 
 Jev is an optional second opinion in the visual desk. Click **Ask Jev** to
-evaluate the current live setup. The panel shows BUY / HOLD / SELL / WAIT
-probabilities, confidence, the source timestamp, and usage. WAIT means remaining
-flat; low confidence produces **uncertain**, not HOLD. These are model judgments
-about the supplied intraday setup, not validated probabilities of profit or
-multi-day price forecasts. Existing strategy, position and risk guards remain in
-control; Jev cannot place trades or change the strategy's signals.
+evaluate the available market context. The panel shows probabilities, confidence,
+the source timestamp, and usage. In Finnhub mode, **Jev market opinion** is
+independent of brokerage information and the deterministic strategy: BUY means
+bullish leaning, HOLD means neutral, and SELL means bearish leaning. These labels
+do not assume an existing position or instruct a trade. WAIT or low confidence
+produces **uncertain**. With the full Alpaca/account feed, the existing
+strategy-review mode continues to respect its position and risk checks.
+
+These are model judgments, not validated probabilities of profit or price
+forecasts. Neither mode places trades or changes the strategy's signals.
 
 ```bash
 # Run from the checkout containing the Jev changes.
@@ -62,8 +66,9 @@ of OpenAI or ChatGPT.
 The trial allows **100 attempted requests total across restarts**, with a
 30-second cooldown, a 16,000-byte request limit, caching of identical recent
 requests, and zero automatic retries. Failed/timeout attempts count toward the
-limit. Merely opening or polling the dashboard spends nothing; replay/mock mode,
-stale or missing data, DAY_STOP and confirmed exits cannot trigger Jev requests.
+limit. Merely opening or polling the dashboard spends nothing, and replay/mock
+data cannot trigger Jev requests. Strategy review retains its complete-data and
+risk gates; independent market opinions use the evidence checks described below.
 The usage ledger is shared across working directories and `--db` values in the
 operating system user's `Library/Application Support/tradecopilot/jev.sqlite3`.
 Keep that ledger to preserve the cap; this local cap does not cover usage in
@@ -90,16 +95,17 @@ separate evaluation once the trading horizon and data source are fixed.
 
 ## Finnhub free price feed
 
-Finnhub can supply the selected stock's latest price without Alpaca or broker
-credentials. This mode is a **price display**, with the provider timestamp and
-data age preserved. It does not imply that complete strategy inputs are present.
+Finnhub supplies the selected stock's latest and session prices without Alpaca or
+broker credentials. Provider timestamps and data age are preserved. This market
+context can support an informational Jev opinion while the deterministic trading
+strategy still reports incomplete inputs.
 
 ```bash
 TRADECOPILOT_PROJECT="$(git rev-parse --show-toplevel)"
 uv run --project "$TRADECOPILOT_PROJECT" tradecopilot auth finnhub
 uv run --project "$TRADECOPILOT_PROJECT" tradecopilot finnhub-quote AAPL
 uv run --project "$TRADECOPILOT_PROJECT" tradecopilot serve \
-  --mode live --data-provider finnhub --symbol AAPL
+  --mode live --data-provider finnhub --symbol AAPL --jev
 ```
 
 The hidden prompt stores the key in the OS keychain. `FINNHUB_API_KEY` in the
@@ -112,11 +118,23 @@ five seconds while this mode runs; the adapter makes no automatic retry burst.
 Finnhub's free `/quote` response supplies a last price and daily price fields;
 it supplies neither bid/ask nor minute OHLCV. Those fields remain unavailable,
 the charts do not invent candles, and positions remain unknown because this
-mode does not connect a broker. The strategy stays `DATA_INSUFFICIENT`. Enabling
-`--jev` can show Jev's status and request allowance, but the adviser remains
-blocked and spends no credit on these incomplete frames. `doctor` reports quote
-access separately from the missing strategy coverage. Full intraday advice still
-needs the complete market and account inputs supplied by the Alpaca path.
+mode does not connect a broker. The strategy stays `DATA_INSUFFICIENT`, but this
+does **not** block an independent Jev market opinion.
+
+The opinion needs either a valid session open/high/low and previous close, or at
+least six distinct price observations spanning a minute. The provider retains
+at most 60 observations per symbol in memory and does not count repeated quote
+timestamps as new history. These are sampled prices, not reconstructed OHLCV.
+Recent-history opinions require a source price at most 60 seconds old.
+Session-summary opinions can use the latest observed session (up to four days
+old, accommodating a long weekend); they are labeled with their original as-of
+time and are not presented as fresh intraday signals. A lone last price is still
+insufficient. The 0.6 confidence threshold and these evidence minimums are
+implementation defaults, not empirically validated forecasting rules.
+
+`doctor` continues to report price access separately from the incomplete inputs
+needed for the deterministic strategy. Jev's market opinion has its own status
+in the dashboard and never bypasses the strategy's risk rules.
 
 Prices may be old outside trading hours or when no new trade occurs; the display
 does not relabel an old provider timestamp as fresh just because a request

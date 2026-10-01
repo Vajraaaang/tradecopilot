@@ -87,11 +87,32 @@ class StampedModel(FrozenModel):
 
 
 class PriceSnapshot(StampedModel):
-    """A last price for display, without implying bid/ask or candle coverage."""
+    """A display price and optional session summary, without bid/ask or candles."""
 
     symbol: str = Field(pattern=r"^[A-Z][A-Z0-9.-]{0,9}$")
     last: Decimal = Field(gt=0)
     previous_close: Decimal = Field(gt=0)
+    session_open: Decimal | None = Field(default=None, gt=0)
+    session_high: Decimal | None = Field(default=None, gt=0)
+    session_low: Decimal | None = Field(default=None, gt=0)
+
+    @model_validator(mode="after")
+    def validate_session_range(self) -> Self:
+        if (
+            self.session_high is not None
+            and self.session_low is not None
+            and self.session_high < self.session_low
+        ) or (
+            self.session_open is not None
+            and self.session_high is not None
+            and self.session_open > self.session_high
+        ) or (
+            self.session_open is not None
+            and self.session_low is not None
+            and self.session_open < self.session_low
+        ):
+            raise ValueError("session open/high/low values are contradictory")
+        return self
 
 
 class Quote(StampedModel):
@@ -432,6 +453,7 @@ class MarketFrame(FrozenModel):
     screener_candidates: tuple[ScreenerCandidate, ...] = ()
     positions: tuple[PositionSnapshot, ...] = ()
     price_snapshot: PriceSnapshot | None = None
+    price_history: tuple[PriceSnapshot, ...] = Field(default=(), max_length=60)
 
     @field_validator("event_time")
     @classmethod

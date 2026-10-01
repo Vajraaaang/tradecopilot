@@ -96,7 +96,7 @@ function renderSnapshot(snapshot) {
     `${simulated ? "REPLAY " : "EVENT "}${meta.event_time_pt.slice(11, 19)} PT · ${meta.event_time_et.slice(11, 19)} ET`,
   );
   setText("decisionKind", priceOnly ? "ENGINE STATE · LIMITED INPUTS" : simulated ? "REPLAYED ENGINE STATE" : "DETERMINISTIC LIVE STATE");
-  setText("manualLabel", priceOnly ? "PRICE ONLY · TRADING ANALYSIS UNAVAILABLE" : simulated ? "HISTORICAL SIMULATION · NOT LIVE" : "ANALYSIS ONLY · MANUAL EXECUTION");
+  setText("manualLabel", priceOnly ? "PRICE CONTEXT · STRATEGY INPUTS INCOMPLETE" : simulated ? "HISTORICAL SIMULATION · NOT LIVE" : "ANALYSIS ONLY · MANUAL EXECUTION");
   setInputValue("symbol", meta.symbol);
   setText("lastPrice", money(quote.last));
   setText("priceChange", `${quote.change >= 0 ? "+" : ""}${fixed(quote.change)} (${quote.change_percent >= 0 ? "+" : ""}${fixed(quote.change_percent)}%)`);
@@ -136,6 +136,9 @@ function renderSnapshot(snapshot) {
 
 function jevContextKey(snapshot) {
   const meta = snapshot?.meta || {};
+  if (meta.price_only) {
+    return JSON.stringify([meta.symbol, meta.data_provider, true, String(meta.quote_time || "").slice(0, 10)]);
+  }
   const positions = (snapshot?.positions || [])
     .filter((position) => position.symbol === meta.symbol)
     .map((position) => [position.quantity, position.average_entry]);
@@ -157,8 +160,16 @@ function jevBlockedReason(snapshot) {
   if (!snapshot.ready) return "Waiting for market data.";
   if (ui.jev.switchingTo) return "Waiting for the selected symbol's market data.";
   if (snapshot.meta.mode !== "live") return "Jev requests are disabled in replay and mock mode. Use a live feed.";
-  if (snapshot.meta.price_only) return "Jev needs minute OHLCV, bid/ask, and account data. Finnhub supplies price only.";
   if (snapshot.error || snapshot.complete || ui.jev.offline) return "The live feed is unavailable. Jev results are cleared.";
+  if (snapshot.meta.price_only) {
+    const readiness = snapshot.jev.opinion;
+    if (!readiness?.ready) return readiness?.reason || "Waiting for session prices or recent price history.";
+    const sourceAge = (Date.now() - Date.parse(snapshot.meta.quote_time)) / 1000;
+    if (!Number.isFinite(sourceAge) || sourceAge < 0 || sourceAge > readiness.maximum_source_age_seconds) {
+      return "The source price context is too old. Wait for a new market snapshot.";
+    }
+    return "";
+  }
   if (["DATA_STALE", "DATA_INSUFFICIENT", "NO_TRADE", "DAY_STOP", "SELL"].includes(snapshot.meta.state) || snapshot.day_stop?.locked) {
     return `Jev is paused while the engine reports ${snapshot.meta.state}. Follow the engine's risk guidance.`;
   }
@@ -176,6 +187,8 @@ function renderJev() {
   const snapshot = ui.snapshot;
   const metadata = snapshot?.jev || { enabled: false, requests_used: 0, request_limit: 100, estimated_cost_usd: 0 };
   const blocked = jevBlockedReason(snapshot);
+  const opinion = snapshot?.meta?.price_only === true;
+  setText("jevTitle", opinion ? "Jev market opinion" : "Jev assessment");
   let result = ui.jev.result;
   if (result && (blocked || result.contextKey !== jevContextKey(snapshot))) {
     clearJev(blocked || "Market context changed. Request a fresh assessment.");
@@ -195,16 +208,19 @@ function renderJev() {
   button.setAttribute("aria-busy", String(ui.jev.pending));
   setText("jevStatus", ui.jev.pending ? "CHECKING" : result ? result.status.replaceAll("_", " ").toUpperCase() : blocked ? "PAUSED" : "READY");
   if (!metadata.enabled) setText("jevStatus", "OFF");
-  setText("jevResult", result?.action ? `Model view: ${result.action}` : "");
+  setText("jevResult", result?.action ? opinion ? `${result.action}-leaning opinion` : `Model view: ${result.action}` : "");
   const details = [result?.model || metadata.model].filter(Boolean);
   if (result && ["available", "uncertain"].includes(result.status)) {
     if (Number.isFinite(result.confidence)) details.push(`${(result.confidence * 100).toFixed(1)}% decision confidence`);
     if (Number.isFinite(Date.parse(result.source_time))) {
-      details.push(`as of ${new Date(result.source_time).toLocaleTimeString([], { hour12: false, timeZoneName: "short" })}`);
+      details.push(`as of ${new Date(result.source_time).toLocaleString([], { hour12: false, timeZoneName: "short" })}`);
     }
+    if (result.context_kind) details.push(result.context_kind.replaceAll("_", " "));
   }
   setText("jevDetails", metadata.enabled ? details.join(" · ") : "");
-  const fallback = remaining === 0 ? "The request limit has been reached." : "Ask for a view of the current setup. Requests run only when you click.";
+  const fallback = remaining === 0 ? "The request limit has been reached." : opinion
+    ? `${metadata.opinion?.reason || "Informational market opinion"}. Requests run only when you click.`
+    : "Ask for a view of the current setup. Requests run only when you click.";
   setText("jevMessage", blocked || (ui.jev.pending ? "Assessing the latest server-side market snapshot…" : result?.message || ui.jev.notice || fallback));
   setText("jevBudget", `${remaining} / ${limit} calls remaining · estimated spend $${(Number(metadata.estimated_cost_usd) || 0).toFixed(4)}`);
   $("jevBudget").hidden = !metadata.enabled;

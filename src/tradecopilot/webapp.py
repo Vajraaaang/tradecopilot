@@ -25,6 +25,7 @@ from tradecopilot.config import StrategyConfig
 from tradecopilot.explain import Explanation, SafeExplanationService
 from tradecopilot.indicators import InsufficientIndicators, ema_series, macd, rsi, session_vwap
 from tradecopilot.journal import Journal
+from tradecopilot.market_opinion import context_from_frame, opinion_readiness
 from tradecopilot.models import DecisionState, MarketFrame, OHLCVBar, StrategyDecision
 from tradecopilot.monitor import Monitor
 from tradecopilot.providers.base import FrameProvider
@@ -212,7 +213,9 @@ class DashboardState:
                 "position_status": (
                     "UNKNOWN"
                     if price_only and risk is None
-                    else "OPEN" if position and position.quantity > 0 else "FLAT"
+                    else "OPEN"
+                    if position and position.quantity > 0
+                    else "FLAT"
                 ),
             },
             "quote": {
@@ -229,7 +232,8 @@ class DashboardState:
                 "broker_account": risk is not None,
                 "reason": (
                     "Finnhub price only: minute OHLCV, bid/ask, volume, and broker account data are unavailable."
-                    if price_only else None
+                    if price_only
+                    else None
                 ),
             },
             "action": explanation.one_sentence_action,
@@ -304,6 +308,9 @@ class DashboardState:
                 "5m": _chart_series(frame.bars_5m, frame.bars_1m, self.config),
             },
         }
+        if price_only:
+            snapshot["market_context"] = context_from_frame(frame)
+            snapshot["jev"]["opinion"] = opinion_readiness(snapshot)
         with self._condition:
             self._snapshot = snapshot
             self._version += 1
@@ -341,23 +348,31 @@ class DashboardState:
         if self._jev_advisor is None:
             return self._jev_no_advice("disabled", "Jev is not enabled for this session.", snapshot)
         if _jev_context_blocked(snapshot, self.config.maximum_quote_age_seconds):
-            return self._jev_no_advice("blocked", "Jev requires fresh live data and an unblocked risk state.", snapshot)
+            reason = (
+                opinion_readiness(snapshot)["reason"]
+                if meta.get("price_only")
+                else "Jev requires fresh live data and an unblocked risk state."
+            )
+            return self._jev_no_advice("blocked", reason, snapshot)
         # Hosted inference runs in this HTTP worker, outside the snapshot lock and monitor loop.
         try:
             result = self._jev_advisor.advise(snapshot)
         except Exception:
             LOGGER.warning("Jev advisory unavailable; the deterministic decision is unchanged")
             result = self._jev_no_advice(
-                "unavailable", "Jev is unavailable. The engine remains authoritative.", snapshot,
+                "unavailable",
+                "Jev is unavailable. The engine remains authoritative.",
+                snapshot,
             )
         current = self.snapshot()
-        context_changed = (
-            _jev_context_blocked(current, self.config.maximum_quote_age_seconds)
-            or _jev_context_identity(current) != _jev_context_identity(snapshot)
-        )
+        context_changed = _jev_context_blocked(current, self.config.maximum_quote_age_seconds) or _jev_context_identity(
+            current
+        ) != _jev_context_identity(snapshot)
         if context_changed or not _jev_result_matches(result, snapshot):
             result = self._jev_no_advice(
-                "blocked", "Market context changed or expired. Request a fresh assessment.", current,
+                "blocked",
+                "Market context changed or expired. Request a fresh assessment.",
+                current,
             )
         if result.get("status") not in {"available", "uncertain"}:
             result = {
@@ -365,7 +380,7 @@ class DashboardState:
                 "symbol": result.get("symbol") or meta.get("symbol"),
                 "source_time": result.get("source_time") or meta.get("quote_time"),
             }
-        metadata = self._jev_metadata()
+        metadata = {**current.get("jev", {}), **self._jev_metadata()}
         with self._condition:
             self._snapshot = {**self._snapshot, "jev": metadata}
             self._version += 1
@@ -513,6 +528,8 @@ class DashboardHTTPServer(ThreadingHTTPServer):
 
 def _jev_context_blocked(snapshot: Mapping[str, Any], maximum_quote_age_seconds: float) -> bool:
     meta = snapshot.get("meta", {})
+    if meta.get("price_only"):
+        return not bool(opinion_readiness(snapshot)["ready"])
     if (
         not snapshot.get("ready")
         or snapshot.get("error")
@@ -539,6 +556,8 @@ def _jev_context_blocked(snapshot: Mapping[str, Any], maximum_quote_age_seconds:
 
 def _jev_context_identity(snapshot: Mapping[str, Any]) -> tuple[Any, ...]:
     meta = snapshot.get("meta", {})
+    if meta.get("price_only"):
+        return (meta.get("symbol"), meta.get("data_provider"), True, str(meta.get("quote_time", ""))[:10])
     plan = snapshot.get("plan", {})
     positions = tuple(
         (position.get("quantity"), position.get("average_entry"))
@@ -546,8 +565,13 @@ def _jev_context_identity(snapshot: Mapping[str, Any]) -> tuple[Any, ...]:
         if position.get("symbol") == meta.get("symbol")
     )
     return (
-        meta.get("symbol"), meta.get("state"), meta.get("position_status"),
-        snapshot.get("day_stop"), plan.get("stop"), plan.get("maximum_shares"), positions,
+        meta.get("symbol"),
+        meta.get("state"),
+        meta.get("position_status"),
+        snapshot.get("day_stop"),
+        plan.get("stop"),
+        plan.get("maximum_shares"),
+        positions,
     )
 
 
