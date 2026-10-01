@@ -84,9 +84,10 @@ function renderSnapshot(snapshot) {
   const indicators = snapshot.indicators;
   const plan = snapshot.plan;
   const simulated = ["replay", "mock"].includes(meta.mode);
+  const priceOnly = meta.price_only === true;
   setText(
     "sessionMode",
-    simulated
+    priceOnly ? "FINNHUB PRICE · LIMITED DATA" : simulated
       ? `${meta.mode.toUpperCase()} SIMULATION · ${snapshot.complete ? "COMPLETE" : "PLAYING"} · NOT LIVE`
       : "LIVE READ-ONLY STREAM",
   );
@@ -94,8 +95,8 @@ function renderSnapshot(snapshot) {
     "topClock",
     `${simulated ? "REPLAY " : "EVENT "}${meta.event_time_pt.slice(11, 19)} PT · ${meta.event_time_et.slice(11, 19)} ET`,
   );
-  setText("decisionKind", simulated ? "REPLAYED ENGINE STATE" : "DETERMINISTIC LIVE STATE");
-  setText("manualLabel", simulated ? "HISTORICAL SIMULATION · NOT LIVE" : "ANALYSIS ONLY · MANUAL EXECUTION");
+  setText("decisionKind", priceOnly ? "ENGINE STATE · LIMITED INPUTS" : simulated ? "REPLAYED ENGINE STATE" : "DETERMINISTIC LIVE STATE");
+  setText("manualLabel", priceOnly ? "PRICE ONLY · TRADING ANALYSIS UNAVAILABLE" : simulated ? "HISTORICAL SIMULATION · NOT LIVE" : "ANALYSIS ONLY · MANUAL EXECUTION");
   setInputValue("symbol", meta.symbol);
   setText("lastPrice", money(quote.last));
   setText("priceChange", `${quote.change >= 0 ? "+" : ""}${fixed(quote.change)} (${quote.change_percent >= 0 ? "+" : ""}${fixed(quote.change_percent)}%)`);
@@ -113,8 +114,9 @@ function renderSnapshot(snapshot) {
   setText("stripAge", meta.quote_age == null ? "—" : `${fixed(meta.quote_age)}s`);
   setText("stripMissing", snapshot.missing.length ? `${snapshot.missing.length} flagged` : "None");
   const dataState = $("dataState");
-  dataState.textContent = snapshot.error ? "DEGRADED" : simulated ? `${meta.mode.toUpperCase()} DATA` : "LIVE DATA";
-  dataState.classList.toggle("live", !snapshot.error);
+  dataState.textContent = snapshot.error ? "DEGRADED" : priceOnly ? "LIMITED DATA" : simulated ? `${meta.mode.toUpperCase()} DATA` : "LIVE DATA";
+  dataState.classList.toggle("live", !snapshot.error && !priceOnly);
+  renderPriceOnlyStatus();
   const chatMeta = snapshot.chat || { provider: "deterministic", model: "local", reasoning: "local" };
   const modelBadge = $("chatModelBadge");
   const gptEnabled = chatMeta.provider === "openai";
@@ -126,7 +128,7 @@ function renderSnapshot(snapshot) {
   $("chatForm").querySelector("button").disabled = !gptEnabled;
   document.querySelector(".quick-actions").hidden = !gptEnabled;
   deliverBrowserAlert(snapshot.alert);
-  renderPositions(snapshot.positions);
+  renderPositions(snapshot.positions, priceOnly);
   renderScreener(snapshot.screener);
   renderBrief(snapshot);
   renderCharts();
@@ -155,6 +157,7 @@ function jevBlockedReason(snapshot) {
   if (!snapshot.ready) return "Waiting for market data.";
   if (ui.jev.switchingTo) return "Waiting for the selected symbol's market data.";
   if (snapshot.meta.mode !== "live") return "Jev requests are disabled in replay and mock mode. Use a live feed.";
+  if (snapshot.meta.price_only) return "Jev needs minute OHLCV, bid/ask, and account data. Finnhub supplies price only.";
   if (snapshot.error || snapshot.complete || ui.jev.offline) return "The live feed is unavailable. Jev results are cleared.";
   if (["DATA_STALE", "DATA_INSUFFICIENT", "NO_TRADE", "DAY_STOP", "SELL"].includes(snapshot.meta.state) || snapshot.day_stop?.locked) {
     return `Jev is paused while the engine reports ${snapshot.meta.state}. Follow the engine's risk guidance.`;
@@ -268,14 +271,16 @@ async function requestJev() {
   }
 }
 
-function renderPositions(positions) {
+function renderPositions(positions, priceOnly = false) {
   const root = $("positions");
   root.replaceChildren();
   root.className = "widget-body";
   if (!positions.length) {
     root.className = "widget-body empty-state";
     const empty = document.createElement("p");
-    empty.textContent = "No open or recent replay position.";
+    empty.textContent = priceOnly
+      ? "No broker connection. Position and buying-power data are unavailable."
+      : "No open or recent replay position.";
     root.append(empty);
     return;
   }
@@ -355,7 +360,9 @@ function renderScreener(rows) {
     });
     const feedback = document.createElement("p");
     feedback.className = "screener-feedback";
-    feedback.textContent = `${row.pillars}/5 pillars · ${row.feedback}`;
+    feedback.textContent = row.price_only
+      ? `${money(row.price)} · Price only · Setup not assessed`
+      : `${row.pillars}/5 pillars · ${row.feedback}`;
     result.append(feedback);
     root.append(result);
   });
@@ -426,7 +433,8 @@ function updateChartReadout(bars) {
   const suffix = ui.pinnedTimestamp && bars.some((candidate) => candidate.t === ui.pinnedTimestamp) ? " · PINNED" : "";
   setText(
     "chartStatus",
-    `${ui.timeframe} · ${ui.chartType} · ${ui.logScale ? "log" : "linear"} · ${ui.snapshot.indicators.vwap_session || "VWAP unavailable"} · ${bars.length}/${total} bars${suffix}`,
+    ui.snapshot.meta.price_only ? "Finnhub price only · No minute OHLCV"
+      : `${ui.timeframe} · ${ui.chartType} · ${ui.logScale ? "log" : "linear"} · ${ui.snapshot.indicators.vwap_session || "VWAP unavailable"} · ${bars.length}/${total} bars${suffix}`,
   );
   updateTooltip(bar);
 }
@@ -466,7 +474,9 @@ function drawPriceChart(bars, plan) {
   const top = 14;
   const bottom = 30;
   if (!bars.length) {
-    drawEmpty(ctx, width, height, "Waiting for normalized OHLCV bars");
+    drawEmpty(ctx, width, height, ui.snapshot?.meta?.price_only
+      ? "Finnhub provides price only; minute OHLCV is unavailable"
+      : "Waiting for normalized OHLCV bars");
     return;
   }
   const priceValues = bars.flatMap((bar) => [bar.h, bar.l, bar.vwap, bar.ema9, bar.ema20]).filter((value) => value != null);
@@ -748,14 +758,14 @@ function renderBrief(snapshot) {
   const { meta, quality, pattern, plan, indicators } = snapshot;
   setText("briefState", meta.state);
   setText("briefAction", snapshot.action);
-  setText("briefQuality", `${quality.pillars_passed}/5 pillars`);
+  setText("briefQuality", meta.price_only ? "Not assessed" : `${quality.pillars_passed}/5 pillars`);
   setText(
     "briefQualityDetail",
     `RVOL ${fixed(quality.rvol, 1)} · gain ${fixed(quality.gain_percent)}% · float ${compact(quality.float_shares)}`,
   );
   setText(
     "briefStructure",
-    pattern.pullback_low == null ? "Pattern forming" : `${fixed(pattern.retracement_percent)}% retracement`,
+    meta.price_only ? "Unavailable" : pattern.pullback_low == null ? "Pattern forming" : `${fixed(pattern.retracement_percent)}% retracement`,
   );
   setText(
     "briefStructureDetail",
@@ -766,10 +776,11 @@ function renderBrief(snapshot) {
     "briefPlanDetail",
     `Stop ${money(plan.stop)} · ${plan.maximum_shares ?? "—"} max shares · ${fixed(plan.reward_risk)}R available`,
   );
-  setText("briefData", snapshot.missing.length ? `${snapshot.missing.length} limitations` : "Required data ready");
+  setText("briefData", meta.price_only ? "Price only" : snapshot.missing.length ? `${snapshot.missing.length} limitations` : "Required data ready");
   setText(
     "briefDataDetail",
-    `VWAP ${money(indicators.vwap)} · EMA9 ${money(indicators.ema9_1m)} · quote age ${fixed(meta.quote_age)}s`,
+    meta.price_only ? snapshot.capabilities.reason
+      : `VWAP ${money(indicators.vwap)} · EMA9 ${money(indicators.ema9_1m)} · quote age ${fixed(meta.quote_age)}s`,
   );
 
   const reminders = $("briefReminders");
@@ -950,7 +961,21 @@ function animateChartChange() {
   requestAnimationFrame(() => chart.classList.add("chart-refresh"));
 }
 
+function renderPriceOnlyStatus() {
+  if (!ui.snapshot?.meta?.price_only) return;
+  const meta = ui.snapshot.meta;
+  const timestamp = Date.parse(meta.quote_time);
+  const elapsed = Number.isFinite(timestamp) ? Math.max(0, (Date.now() - timestamp) / 1000) : null;
+  const age = elapsed == null ? meta.quote_age : Math.max(meta.quote_age || 0, elapsed);
+  setText("stripAge", age == null ? "—" : `${fixed(age)}s`);
+  setText("topClock", Number.isFinite(timestamp)
+    ? `LAST TRADE ${new Date(timestamp).toLocaleString("en-US", { timeZone: "America/Los_Angeles", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false, timeZoneName: "short" })}`
+    : "LAST TRADE TIME UNAVAILABLE");
+  setText("dataState", ui.snapshot.error ? "DEGRADED" : age == null || age > 2 ? "LIMITED · STALE PRICE" : "LIMITED DATA");
+}
+
 function renderCurrentMarketStatus() {
+  renderPriceOnlyStatus();
   const eastern = Object.fromEntries(
     new Intl.DateTimeFormat("en-US", {
       timeZone: "America/New_York",

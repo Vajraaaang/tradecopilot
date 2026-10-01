@@ -35,6 +35,8 @@ ALPACA_KEYCHAIN_SERVICE = "tradecopilot.alpaca-market-data"
 _ALPACA_CREDENTIALS_KEY = "api-credentials"
 JEV_KEYCHAIN_SERVICE = "tradecopilot.typesafe-jev"
 _JEV_API_KEY = "api-key"
+FINNHUB_KEYCHAIN_SERVICE = "tradecopilot.finnhub"
+_FINNHUB_API_KEY = "api-key"
 
 
 class KeychainOAuthStorage:
@@ -148,6 +150,38 @@ def prompt_for_jev_api_key() -> str:
     api_key = getpass.getpass("Typesafe Jev API key (stored in operating-system keychain): ").strip()
     if not api_key:
         raise ValueError("Jev API key is required")
+    return api_key
+
+
+class FinnhubKeychainStorage:
+    """Store the Finnhub API key only in the operating-system keychain."""
+
+    def __init__(self, service_name: str = FINNHUB_KEYCHAIN_SERVICE) -> None:
+        self.service_name = service_name
+
+    async def set_api_key(self, api_key: str) -> None:
+        if not api_key.strip():
+            raise ValueError("Finnhub API key is required")
+        await asyncio.to_thread(keyring.set_password, self.service_name, _FINNHUB_API_KEY, api_key.strip())
+
+    async def get_api_key(self) -> str | None:
+        api_key = await asyncio.to_thread(keyring.get_password, self.service_name, _FINNHUB_API_KEY)
+        return api_key.strip() or None if api_key else None
+
+    async def clear(self) -> None:
+        with suppress(PasswordDeleteError):
+            await asyncio.to_thread(keyring.delete_password, self.service_name, _FINNHUB_API_KEY)
+
+
+async def load_finnhub_api_key() -> str | None:
+    api_key = os.getenv("FINNHUB_API_KEY", "").strip()
+    return api_key or await FinnhubKeychainStorage().get_api_key()
+
+
+def prompt_for_finnhub_api_key() -> str:
+    api_key = getpass.getpass("Finnhub API key (stored in operating-system keychain): ").strip()
+    if not api_key:
+        raise ValueError("Finnhub API key is required")
     return api_key
 
 

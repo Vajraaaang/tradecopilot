@@ -19,11 +19,13 @@ from tradecopilot.auth import (
     AlpacaKeychainStorage,
     KeychainOAuthStorage,
     LoopbackOAuthFlow,
+    load_finnhub_api_key,
     robinhood_oauth_client,
 )
 from tradecopilot.config import StrategyConfig
 from tradecopilot.journal import Journal
 from tradecopilot.mcp_client import OfficialMcpSession
+from tradecopilot.providers.finnhub import FinnhubClient
 from tradecopilot.providers.robinhood import (
     RobinhoodBrokerReadProvider,
     RobinhoodMarketDataProvider,
@@ -55,9 +57,15 @@ def run_doctor(
     symbol: str = "AAPL",
     account_last4: str | None = None,
     alpaca_feed: str = "sip",
+    data_provider: str = "alpaca",
 ) -> tuple[Check, ...]:
+    if data_provider not in {"alpaca", "finnhub"}:
+        raise ValueError("data provider must be alpaca or finnhub")
     checks = list(_local_checks(database_path, config))
-    checks.extend(asyncio.run(_provider_checks(symbol.strip().upper(), account_last4, alpaca_feed, config)))
+    if data_provider == "finnhub":
+        checks.extend(asyncio.run(_finnhub_checks(symbol.strip().upper())))
+    else:
+        checks.extend(asyncio.run(_provider_checks(symbol.strip().upper(), account_last4, alpaca_feed, config)))
     explanation_mode = os.getenv("TRADECOPILOT_EXPLANATION_MODE", "deterministic")
     if explanation_mode == "openai":
         openai_ok = bool(os.getenv("OPENAI_API_KEY")) and importlib.util.find_spec("openai") is not None
@@ -122,6 +130,30 @@ def _local_checks(database_path: Path, config: StrategyConfig) -> tuple[Check, .
         )
     )
     return tuple(checks)
+
+
+async def _finnhub_checks(symbol: str) -> tuple[Check, ...]:
+    coverage = Check(
+        "Finnhub strategy coverage",
+        False,
+        "Price-only access; missing minute OHLCV, bid/ask, and account context required for strategy signals.",
+    )
+    if not symbol or len(symbol) > 10:
+        return Check("Finnhub price access", False, "use a valid stock ticker"), coverage
+    try:
+        api_key = await load_finnhub_api_key()
+        if not api_key:
+            return (
+                Check("Finnhub price access", False, "not authenticated; run `tradecopilot auth finnhub`"),
+                coverage,
+            )
+        await asyncio.to_thread(FinnhubClient(api_key).quote, symbol)
+    except Exception:
+        return (
+            Check("Finnhub price access", False, "unavailable; check credentials, symbol, or provider status"),
+            coverage,
+        )
+    return Check("Finnhub price access", True, f"limited price-only quote received for {symbol}"), coverage
 
 
 async def _provider_checks(

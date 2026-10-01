@@ -88,6 +88,40 @@ horizon and trading costs before treating its judgments as predictive evidence.
 No Deep Research report is required to connect the API; it can help define that
 separate evaluation once the trading horizon and data source are fixed.
 
+## Finnhub free price feed
+
+Finnhub can supply the selected stock's latest price without Alpaca or broker
+credentials. This mode is a **price display**, with the provider timestamp and
+data age preserved. It does not imply that complete strategy inputs are present.
+
+```bash
+TRADECOPILOT_PROJECT="$(git rev-parse --show-toplevel)"
+uv run --project "$TRADECOPILOT_PROJECT" tradecopilot auth finnhub
+uv run --project "$TRADECOPILOT_PROJECT" tradecopilot finnhub-quote AAPL
+uv run --project "$TRADECOPILOT_PROJECT" tradecopilot serve \
+  --mode live --data-provider finnhub --symbol AAPL
+```
+
+The hidden prompt stores the key in the OS keychain. `FINNHUB_API_KEY` in the
+server environment takes precedence. `tradecopilot logout finnhub` removes the
+stored key. The key is sent in the `X-Finnhub-Token` header and never included in
+URLs, browser state, or the repository. The free quote endpoint refreshes every
+five seconds while this mode runs; the adapter makes no automatic retry burst.
+`monitor` and `doctor` also accept `--data-provider finnhub`.
+
+Finnhub's free `/quote` response supplies a last price and daily price fields;
+it supplies neither bid/ask nor minute OHLCV. Those fields remain unavailable,
+the charts do not invent candles, and positions remain unknown because this
+mode does not connect a broker. The strategy stays `DATA_INSUFFICIENT`. Enabling
+`--jev` can show Jev's status and request allowance, but the adviser remains
+blocked and spends no credit on these incomplete frames. `doctor` reports quote
+access separately from the missing strategy coverage. Full intraday advice still
+needs the complete market and account inputs supplied by the Alpaca path.
+
+Prices may be old outside trading hours or when no new trade occurs; the display
+does not relabel an old provider timestamp as fresh just because a request
+succeeded. See [Finnhub's quote and authentication documentation](https://finnhub.io/docs/api/quote).
+
 ## Run
 
 ```bash

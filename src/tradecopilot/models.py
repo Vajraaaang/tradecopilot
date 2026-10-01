@@ -86,6 +86,14 @@ class StampedModel(FrozenModel):
         return self
 
 
+class PriceSnapshot(StampedModel):
+    """A last price for display, without implying bid/ask or candle coverage."""
+
+    symbol: str = Field(pattern=r"^[A-Z][A-Z0-9.-]{0,9}$")
+    last: Decimal = Field(gt=0)
+    previous_close: Decimal = Field(gt=0)
+
+
 class Quote(StampedModel):
     symbol: str
     bid: Decimal = Field(gt=0)
@@ -423,6 +431,7 @@ class MarketFrame(FrozenModel):
     historical_context: HistoricalContextEvidence | None = None
     screener_candidates: tuple[ScreenerCandidate, ...] = ()
     positions: tuple[PositionSnapshot, ...] = ()
+    price_snapshot: PriceSnapshot | None = None
 
     @field_validator("event_time")
     @classmethod

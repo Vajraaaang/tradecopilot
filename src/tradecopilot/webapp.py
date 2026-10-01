@@ -182,12 +182,14 @@ class DashboardState:
             }
 
         quote = frame.quote
+        price = quote or frame.price_snapshot
+        price_only = quote is None and frame.price_snapshot is not None
         indicator = decision.indicator
         plan = decision.trade_plan
         risk = frame.account_risk
         gain = None
-        if quote is not None:
-            gain = ((quote.last - quote.previous_close) / quote.previous_close) * Decimal(100)
+        if price is not None:
+            gain = ((price.last - price.previous_close) / price.previous_close) * Decimal(100)
         catalyst = frame.catalyst_evidence
         float_evidence = frame.float_evidence
         l2 = frame.level2_history[-1] if frame.level2_history else None
@@ -203,17 +205,32 @@ class DashboardState:
                 "strategy": decision.strategy_version,
                 "event_time_et": frame.event_time.astimezone(EASTERN).isoformat(timespec="seconds"),
                 "event_time_pt": frame.event_time.astimezone(PACIFIC).isoformat(timespec="seconds"),
-                "quote_time": quote.provider_timestamp.isoformat() if quote else None,
-                "quote_age": quote.age_seconds if quote else None,
-                "position_status": "OPEN" if position and position.quantity > 0 else "FLAT",
+                "quote_time": price.provider_timestamp.isoformat() if price else None,
+                "quote_age": price.age_seconds if price else None,
+                "price_only": price_only,
+                "data_provider": "finnhub" if price_only else quote.source if quote else None,
+                "position_status": (
+                    "UNKNOWN"
+                    if price_only and risk is None
+                    else "OPEN" if position and position.quantity > 0 else "FLAT"
+                ),
             },
             "quote": {
-                "last": _number(quote.last) if quote else None,
+                "last": _number(price.last) if price else None,
                 "bid": _number(quote.bid) if quote else None,
                 "ask": _number(quote.ask) if quote else None,
-                "change": _number(quote.last - quote.previous_close) if quote else None,
+                "change": _number(price.last - price.previous_close) if price else None,
                 "change_percent": _number(gain),
                 "total_volume": quote.total_volume if quote else None,
+            },
+            "capabilities": {
+                "price_only": price_only,
+                "minute_ohlcv": bool(frame.bars_1m and frame.bars_5m),
+                "broker_account": risk is not None,
+                "reason": (
+                    "Finnhub price only: minute OHLCV, bid/ask, volume, and broker account data are unavailable."
+                    if price_only else None
+                ),
             },
             "action": explanation.one_sentence_action,
             "changed": explanation.what_changed,
@@ -240,7 +257,7 @@ class DashboardState:
                 "catalyst_verified": bool(catalyst and catalyst.verified),
                 "catalyst_source": catalyst.reference if catalyst else None,
                 "market_leader": frame.market_leader,
-                "pillars_passed": sum(pillar.passed for pillar in decision.pillars),
+                "pillars_passed": None if price_only else sum(pillar.passed for pillar in decision.pillars),
             },
             "indicators": _indicator_payload(decision),
             "plan": {
@@ -276,7 +293,7 @@ class DashboardState:
                 "consecutive_losses": risk.consecutive_losses if risk else None,
                 "locked": risk.session_locked if risk else None,
             },
-            "positions": list(self._recent_positions.values()),
+            "positions": [] if price_only and risk is None else list(self._recent_positions.values()),
             "history": list(self._state_history),
             "screener": _screener_rows(decision, frame),
             "chat": self._chat_metadata(),
@@ -501,6 +518,7 @@ def _jev_context_blocked(snapshot: Mapping[str, Any], maximum_quote_age_seconds:
         or snapshot.get("error")
         or snapshot.get("complete")
         or meta.get("mode") != "live"
+        or meta.get("price_only")
         or meta.get("state") in _JEV_BLOCKED_STATES
         or snapshot.get("day_stop", {}).get("locked")
         or snapshot.get("missing")
@@ -895,17 +913,20 @@ def _indicator_payload(decision: StrategyDecision) -> dict[str, Any]:
 def _screener_row(decision: StrategyDecision, frame: MarketFrame) -> dict[str, Any]:
     indicator = decision.indicator
     quote = frame.quote
+    price = quote or frame.price_snapshot
+    price_only = quote is None and frame.price_snapshot is not None
     return {
         "symbol": decision.symbol,
         "state": decision.state.value,
-        "price": _number(decision.current_price),
+        "price": _number(price.last) if price else _number(decision.current_price),
+        "price_only": price_only,
         "gain_percent": (
-            _number(((quote.last - quote.previous_close) / quote.previous_close) * Decimal(100)) if quote else None
+            _number(((price.last - price.previous_close) / price.previous_close) * Decimal(100)) if price else None
         ),
         "rvol": _number(indicator.source_style_rvol) if indicator else None,
         "volume": quote.total_volume if quote else None,
         "float_shares": frame.float_evidence.shares if frame.float_evidence else None,
-        "pillars": sum(pillar.passed for pillar in decision.pillars),
+        "pillars": None if price_only else sum(pillar.passed for pillar in decision.pillars),
         "feedback": decision.reasons[0] if decision.reasons else "No deterministic reason available",
     }
 
