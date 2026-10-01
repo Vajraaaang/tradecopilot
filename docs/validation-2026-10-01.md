@@ -5,7 +5,7 @@ software validation, synthetic experiments, and a small live integration pilot.
 
 | Evidence | Observed result | What it establishes |
 | --- | --- | --- |
-| Local automated suite | 424 tests passed | Exercised contracts, failures, recovery, and existing application behavior |
+| Local automated suite | 426 tests passed | Exercised contracts, failures, recovery, and existing application behavior |
 | Static checks | Ruff passed; strict mypy passed on 55 source files | Lint and checked Python type consistency |
 | Packaging | Wheel and source distribution built; dashboard HTML found in wheel | The installed package includes its report UI |
 | Container | Healthy as UID 10001, with `--network none` | The default demonstration and report server run without external access |

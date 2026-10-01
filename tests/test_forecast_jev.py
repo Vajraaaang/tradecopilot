@@ -92,6 +92,25 @@ def test_prospective_freshness_includes_time_since_input_anchor(tmp_path):
     assert result.estimated_cost_usd == 0 and calls == []
 
 
+@pytest.mark.parametrize("wait_seconds", [1, 2])
+def test_target_expiry_during_reservation_wait_never_spends_credit(tmp_path, monkeypatch, wait_seconds):
+    now = [NOW + timedelta(seconds=59)]
+    config = ForecastConfig(horizon_minutes=1, max_source_age_seconds=120)
+    advisor, calls = service(tmp_path, clock=lambda: now[0])
+    original = advisor._reserve_forecast
+
+    def delayed(*args, **kwargs):
+        now[0] += timedelta(seconds=wait_seconds)
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(advisor, "_reserve_forecast", delayed)
+    result = advisor.predict(example(config), config, "dataset")
+    assert result.reason == "target_already_elapsed"
+    assert result.estimated_cost_usd == 0 and result.request_id is None and calls == []
+    with sqlite3.connect(tmp_path / "jev.sqlite3") as connection:
+        assert connection.execute("SELECT COUNT(*) FROM jev_attempts").fetchone()[0] == 0
+
+
 def test_prompt_uses_only_causal_context_and_exact_last_price_outcome(tmp_path):
     from tradecopilot.forecast.jev import FORECAST_PROMPT_VERSION
 

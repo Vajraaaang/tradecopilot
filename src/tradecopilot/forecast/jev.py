@@ -182,11 +182,14 @@ class JevForecaster(JevAdvisor):
         fingerprint: str,
         request: str,
         fresh_until: datetime | None = None,
+        target_time: datetime | None = None,
     ) -> tuple[int | None, dict[str, Any] | None, str | None]:
         with closing(self._connect()) as connection:
             connection.execute("BEGIN IMMEDIATE")
             try:
                 now = utc(self._clock()).timestamp()
+                if target_time is not None and now >= target_time.timestamp():
+                    return None, None, "target_already_elapsed"
                 if fresh_until is not None and now > fresh_until.timestamp():
                     return None, None, "stale_source"
                 row = connection.execute(
@@ -305,7 +308,9 @@ class JevForecaster(JevAdvisor):
                 if prospective
                 else None
             )
-            request_id, cached, block = self._reserve_forecast(fingerprint, request, fresh_until)
+            request_id, cached, block = self._reserve_forecast(
+                fingerprint, request, fresh_until, example.target_time if prospective else None,
+            )
             if cached is not None:
                 prediction = ForecastPrediction.model_validate(cached)
                 return prediction.model_copy(update={"cached": True})

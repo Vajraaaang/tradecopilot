@@ -179,13 +179,15 @@ only when the complete report bundle passes integrity verification. This is a
 local demonstration, not an authenticated public hosting service.
 
 ```bash
+uv sync --frozen --all-extras
 uv run ruff check src tests
 uv run mypy src/tradecopilot
 uv run pytest
 uv build
 ```
 
-CI runs the offline checks and demo without secrets. Automated tests cover
+CI installs all optional dependencies for type checking and runs the offline
+checks and demo without secrets. Automated tests cover
 causality, calendar edges, late labels, restart/retry behavior, artifact tampering,
 calibration splits, budget concurrency and provider failures. Software tests and
 synthetic results are distinct from evidence about real predictive performance.
