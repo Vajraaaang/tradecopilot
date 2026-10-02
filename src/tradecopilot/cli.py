@@ -29,6 +29,7 @@ from tradecopilot.chat import OpenAITradeChatAgent, TradeChatAgent
 from tradecopilot.config import StrategyConfig
 from tradecopilot.doctor import run_doctor
 from tradecopilot.explain import OpenAIExplanationAgent, SafeExplanationService
+from tradecopilot.forecast.cli import add_forecast_parser
 from tradecopilot.jev import JevAdvisor
 from tradecopilot.journal import Journal
 from tradecopilot.models import CatalystEvidence, DataQuality, ExperimentCandidate, FloatEvidence, MarketFrame, RunMode
@@ -52,6 +53,7 @@ def build_parser() -> argparse.ArgumentParser:
         description="Analysis-only low-float momentum copilot; manual execution only",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
+    add_forecast_parser(subparsers)
 
     doctor = subparsers.add_parser("doctor", help="Validate local safety and dependencies")
     doctor.add_argument("--db", type=Path, default=DEFAULT_DB)
@@ -158,6 +160,10 @@ def main(argv: Sequence[str] | None = None) -> None:
 
 
 def _dispatch(args: argparse.Namespace) -> int:
+    if args.command == "forecast":
+        from tradecopilot.forecast.cli import dispatch
+
+        return dispatch(args)
     config = StrategyConfig()
     if args.command == "doctor":
         return _doctor(args.db, config, args.symbol, args.account_last4, args.alpaca_feed, args.data_provider)

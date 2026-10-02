@@ -5,20 +5,25 @@ build-backend = "hatchling.build"
 [project]
 name = "tradecopilot"
 version = "0.1.0"
-description = "Deterministic, analysis-only low-float momentum trading copilot"
+description = "Analysis-only Jev forecasting, reproducible evaluation, and momentum research copilot"
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "Private" }
 dependencies = [
   "alpaca-py>=0.43.5,<1",
+  "exchange-calendars>=4.5,<5",
   "keyring>=25.7,<26",
   "mcp>=2.0,<3",
   "pydantic>=2.10,<3",
   "rich>=13.9,<15",
+  "scikit-learn>=1.5,<2",
 ]
 
 [project.optional-dependencies]
 openai = ["openai>=1.99,<3"]
+plots = [
+    "matplotlib>=3.9,<4",
+]
 
 [dependency-groups]
 dev = [

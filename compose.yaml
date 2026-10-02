@@ -1,0 +1,14 @@
+services:
+  forecast:
+    build: .
+    ports:
+      - "127.0.0.1:8766:8766"
+    volumes:
+      - forecast-demo:/data
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  forecast-demo:

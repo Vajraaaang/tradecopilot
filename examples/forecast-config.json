@@ -1,0 +1,13 @@
+{
+  "symbols": ["AAPL", "MSFT", "AMZN", "GOOGL", "NVDA"],
+  "horizon_minutes": 15,
+  "lookback_minutes": 5,
+  "anchor_seconds": 60,
+  "flat_threshold_bps": 10,
+  "max_source_age_seconds": 30,
+  "max_outcome_delay_seconds": 60,
+  "min_history_points": 6,
+  "max_history_gap_seconds": 60,
+  "abstention_threshold": 0.6,
+  "seed": 42
+}
