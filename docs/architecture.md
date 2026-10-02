@@ -50,6 +50,10 @@ All paths below are relative to `src/tradecopilot/`.
 | `forecast/dataset.py` | Deterministic dataset construction, immutable exports and manifest/content verification |
 | `forecast/demo.py` | Deterministic synthetic observation generation for the offline demo |
 | `forecast/historical.py` | Bounded archive/CSV import, source hashes, explicit historical provenance, bar-end replay timing and causal prior-session close |
+| `forecast/bars.py` | Separate immutable OHLCV v2 store retaining exact bar fields and primer-session evidence |
+| `forecast/ohlcv_features.py` | Causal multi-window OHLCV/volume/session features with explicit missing history |
+| `forecast/ohlcv_models.py` | Training-only v2 linear/boosting models and validated non-executable JSON inference |
+| `forecast/ohlcv_study.py` | Frozen five-arm validation development comparison, source/split binding and audits |
 | `forecast/baselines.py` | Training-only CPU model fitting/scaling, validation temperature calibration, prediction and JSON model artifacts |
 | `forecast/jev.py` | Pinned typed Jev forecast requests, probability validation, prospective timing, shared ledger/run caps and clearly labeled local fixtures |
 | `forecast/evaluation.py` | Purged session splits, probability metrics, calibration/coverage diagnostics and session-level bootstrap intervals |

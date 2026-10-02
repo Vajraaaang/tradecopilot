@@ -88,3 +88,15 @@ def test_model_rejects_changed_feature_target_contract():
     wrong = rows[60].model_copy(update={"config_id": "different"})
     with pytest.raises(ValueError, match="config"):
         model.probabilities([wrong])
+
+
+def test_weighting_ablation_preserves_balanced_default_and_records_none():
+    from tradecopilot.forecast.baselines import fit_model
+
+    rows = examples()
+    default = fit_model("logistic", rows[:60], ForecastConfig())
+    balanced = fit_model("logistic", rows[:60], ForecastConfig(), class_weight="balanced")
+    unweighted = fit_model("logistic", rows[:60], ForecastConfig(), class_weight=None)
+    assert default.model_id == balanced.model_id
+    assert unweighted.parameters["fit_settings"]["class_weight"] is None
+    assert unweighted.training_ids == default.training_ids
