@@ -273,3 +273,15 @@ def test_import_rejects_invalid_symbol_selection(tmp_path, symbols):
 
     with pytest.raises(ValueError, match="symbols"):
         import_frd_bars(tmp_path, symbols)
+
+
+def test_alpaca_source_is_preserved_without_changing_existing_default():
+    from datetime import UTC, datetime, timedelta
+
+    from tradecopilot.forecast.bars import HistoricalBar
+
+    at = datetime(2026, 8, 3, 14, tzinfo=UTC)
+    fields = dict(symbol="AAPL", start_time=at, end_time=at + timedelta(minutes=1),
+                  available_at=at + timedelta(minutes=1), opening="100", high="101", low="99", close="100", volume="10")
+    assert HistoricalBar(**fields).source == "firstratedata_1min_bar"
+    assert HistoricalBar(**fields, source="alpaca_sip_1min_bar").source == "alpaca_sip_1min_bar"

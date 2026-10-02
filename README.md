@@ -64,6 +64,12 @@ identities so the later labels cannot rewrite what was known at inference time.
 
 ## Real historical results
 
+The next [selective-accuracy experiment](docs/selective-accuracy.md) adds free
+Alpaca historical-data import, chronological CPU tuning, independent calibration
+and a held-out final test. The 80% selective target includes minimum coverage and
+separate UP/DOWN precision requirements. Expanded real-data execution is pending
+credentials; no new accuracy gain or production promotion is claimed.
+
 The subsequent [OHLCV development milestone](docs/ohlcv-development.md) preserves
 all bar fields, adds 55 causal features and a histogram-boosting comparator, and
 compares five fixed CPU arms on validation only. Unweighted price-only logistic

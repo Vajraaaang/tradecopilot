@@ -209,3 +209,8 @@ data quality, and optional explanation versions. Secret-like keys and account
 identifiers are redacted before persistence. High-volume observations are
 bounded by `raw_snapshot_retention_rows`; transitions and session locks are not
 pruned.
+
+The optional selective-accuracy research path uses `forecast/alpaca_history.py`
+for bounded, authenticated historical GET requests, `forecast/selective.py` for
+chronological splits/calibration/selection criteria, and `forecast/selective_study.py`
+for frozen CPU tuning and final-test artifacts. It preserves the live adviser defaults.

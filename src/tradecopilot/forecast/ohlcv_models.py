@@ -176,7 +176,16 @@ def fit_ohlcv_model(
     examples: Sequence[ForecastExample],
     records: Sequence[OhlcvFeatureRecord],
     config: ForecastConfig,
+    *, settings: dict[str, float] | None = None,
 ) -> tuple[OhlcvModelArtifact, Any]:
+    overrides = dict(settings or {})
+    allowed = {"C"} if kind == "ohlcv_logistic" else {"l2_regularization"}
+    if set(overrides) - allowed or any(
+        isinstance(value, bool) or not isinstance(value, (int, float))
+        or not np.isfinite(value) or not 0.001 <= value <= 100
+        for value in overrides.values()
+    ):
+        raise ValueError("unsupported candidate settings")
     if (
         not examples
         or len(examples) != len(records)
@@ -208,7 +217,7 @@ def fit_ohlcv_model(
         scale = imputed.std(axis=0)
         scale[scale < 1e-12] = 1
         classifier = LogisticRegression(
-            C=1.0, class_weight=None, max_iter=1000, solver="lbfgs", random_state=config.seed
+            C=overrides.get("C", 1.0), class_weight=None, max_iter=1000, solver="lbfgs", random_state=config.seed
         )
         classifier.fit((imputed - means) / scale, targets)
         parameters = {
@@ -216,11 +225,13 @@ def fit_ohlcv_model(
             "scale": scale.tolist(),
             "coefficients": classifier.coef_.tolist(),
             "intercept": classifier.intercept_.tolist(),
-            "fit_settings": {"C": 1.0, "class_weight": None, "max_iter": 1000, "solver": "lbfgs", "seed": config.seed},
+            "fit_settings": {"C": overrides.get("C", 1.0), "class_weight": None,
+                             "max_iter": 1000, "solver": "lbfgs", "seed": config.seed},
             "all_training_missing_columns": [int(index) for index in np.flatnonzero(count == 0)],
         }
     elif kind == "ohlcv_hist_gradient_boosting":
-        classifier = HistGradientBoostingClassifier(**HGB_SETTINGS, random_state=config.seed)
+        fit_settings = HGB_SETTINGS | overrides
+        classifier = HistGradientBoostingClassifier(**fit_settings, random_state=config.seed)
         classifier.fit(matrix, targets)
         trees = []
         for iteration in classifier._predictors:
@@ -250,7 +261,7 @@ def fit_ohlcv_model(
             "baseline": np.asarray(classifier._baseline_prediction).ravel().tolist(),
             "trees": trees,
             "tree_format": "numeric_hist_predictor_nodes_v2",
-            "fit_settings": HGB_SETTINGS | {"seed": config.seed},
+            "fit_settings": fit_settings | {"seed": config.seed},
         }
     else:
         raise ValueError("unknown OHLCV model")
