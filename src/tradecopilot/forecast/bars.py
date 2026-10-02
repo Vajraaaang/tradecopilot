@@ -38,7 +38,7 @@ class HistoricalBar(FrozenModel):
     close: Decimal = Field(gt=0, allow_inf_nan=False)
     volume: Decimal = Field(ge=0, allow_inf_nan=False)
     provenance: Literal["historical"] = "historical"
-    source: Literal["firstratedata_1min_bar"] = "firstratedata_1min_bar"
+    source: Literal["firstratedata_1min_bar", "alpaca_sip_1min_bar"] = "firstratedata_1min_bar"
 
     @field_validator("start_time", "end_time", "available_at")
     @classmethod
