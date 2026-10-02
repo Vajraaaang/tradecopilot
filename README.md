@@ -62,6 +62,28 @@ Jev receives only the original causal inputs. Outcome labels are joined after
 their target times. Dataset examples and predictions retain their original
 identities so the later labels cannot rewrite what was known at inference time.
 
+## Real historical results
+
+The [historical evaluation](docs/historical-evaluation.md) ran on FirstRate Data's
+free AAPL, MSFT, AMZN, NFLX and TSLA minute samples: 19,500 regular-session
+observations and 18,500 labeled examples, with 3,700 chronological test cases.
+The fixed 15-minute target and 0.6 confidence threshold were preserved.
+
+The results are weak. The class prior scored 40.7% argmax accuracy, while logistic
+regression scored 38.8%. On ten preselected AAPL cases, retrospective Jev scored
+20%, versus 30% for the class prior on the same cases. Every model abstained at
+the fixed threshold, yielding zero coverage. Jev used an estimated $0.000304878.
+
+![Real historical evaluation on the complete CPU holdout](docs/results/2026-10-01-historical/historical-baselines.png)
+
+![Jev versus baselines on the same ten retrospective AAPL cases](docs/results/2026-10-01-historical/jev-retrospective-comparison.png)
+
+See the study for calibration/confusion plots, all recorded Jev probabilities,
+source hashes, adjustment/receipt assumptions, per-symbol aggregate results and
+reproduction commands. The raw provider files remain local; published assets
+contain derived results with [FirstRate Data](https://firstratedata.com) attribution.
+These historical results establish neither future accuracy nor profitability.
+
 ## Forecast dashboard
 
 ![Synthetic forecast demonstration](docs/forecast-dashboard.jpg)
@@ -107,8 +129,8 @@ and the limits of the small prospective pilot.
 
 | Check | Recorded result |
 | --- | --- |
-| Local regression suite | 426 tests passed |
-| Static analysis | Ruff passed; strict mypy passed on 55 source files |
+| Local regression suite | 455 tests passed after the historical extension |
+| Static analysis | Ruff passed; strict mypy passed on 57 source files |
 | Clean runtime | Docker served the synthetic report as UID 10001 with external networking disabled |
 | Package delivery | Wheel and source distribution built; dashboard asset verified in the wheel |
 | Browser | Report rendering, diagnostic selectors and filters verified without observed console errors |
@@ -124,6 +146,8 @@ claim.
 
 - [Forecasting guide](docs/forecasting.md): configuration, collection, labels,
   experiments, live pilots, Docker and evaluation limits.
+- [Real historical evaluation](docs/historical-evaluation.md): real source data,
+  full holdout, retrospective Jev comparison, published plots and reproducibility.
 - [Architecture](docs/architecture.md): both applications, module ownership,
   storage and inference boundaries.
 - [Validation snapshot](docs/validation-2026-10-01.md): executed evidence and its

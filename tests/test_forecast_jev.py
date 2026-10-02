@@ -92,6 +92,14 @@ def test_prospective_freshness_includes_time_since_input_anchor(tmp_path):
     assert result.estimated_cost_usd == 0 and calls == []
 
 
+def test_historical_inputs_cannot_be_labeled_prospective(tmp_path):
+    row = example().model_copy(update={"provenance": "historical"})
+    advisor, calls = service(tmp_path)
+    result = advisor.predict(row, ForecastConfig(), "historical-dataset")
+    assert result.reason == "historical_input_requires_retrospective_mode"
+    assert result.estimated_cost_usd == 0 and calls == []
+
+
 @pytest.mark.parametrize("wait_seconds", [1, 2])
 def test_target_expiry_during_reservation_wait_never_spends_credit(tmp_path, monkeypatch, wait_seconds):
     now = [NOW + timedelta(seconds=59)]

@@ -71,6 +71,15 @@ The pilot cost estimate was $0.000093198 and all three later outcomes were
 recorded; two forecasts abstained. The synthetic demonstration and live pilot
 have different evidence labels.
 
-A multi-session held-out real-market benchmark, Jev calibration on independent
-market data, transaction-cost-aware trading evaluation, and public production
-deployment remain uncompleted. They are not claimed as current accomplishments.
+A subsequent [real archived-minute study](historical-evaluation.md) imported
+19,500 observations and evaluated 18,500 labeled examples with a 3,700-case
+chronological CPU holdout. It also made ten budgeted retrospective Jev calls on
+a frozen AAPL cohort and published aggregate results/figures with provider
+attribution. Historical provenance, source hashes and replay availability are
+explicit; historical inputs are rejected from prospective inference.
+
+The study found weak predictive results and zero coverage at the fixed threshold.
+Its importer and comparison paths bring the local suite to 455 passing tests.
+Jev calibration on independent market data, multi-regime/prospective validation,
+transaction-cost-aware trading evaluation, and public production deployment
+remain uncompleted. They are not claimed as current accomplishments.

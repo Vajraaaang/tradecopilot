@@ -21,6 +21,9 @@ dependencies = [
 
 [project.optional-dependencies]
 openai = ["openai>=1.99,<3"]
+plots = [
+    "matplotlib>=3.9,<4",
+]
 
 [dependency-groups]
 dev = [

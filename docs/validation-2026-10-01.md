@@ -27,7 +27,9 @@ one passed. No order was placed.
 
 All three realized labels were FLAT. This cohort is too small and class-limited
 to compare models, calibrate Jev, estimate generalization, or claim profitability.
-No held-out real-market benchmark has been completed. The original raw quotes,
+At this initial snapshot, no held-out real-market benchmark had been completed.
+A subsequent [archived-minute evaluation](historical-evaluation.md) records the
+later real-data CPU holdout and retrospective Jev sample. The original raw quotes,
 prediction snapshots and pilot report remain local and are not distributed in
 this repository. The local pilot report's content ID is
 `d6abe64572081105ff2cf63918cb657c03c651d8051c62dbd0f4720bec32706c`.

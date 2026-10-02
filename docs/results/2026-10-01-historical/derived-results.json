@@ -1,0 +1,1045 @@
+{
+  "schema_version": "derived-historical-results-v1",
+  "dataset_id": "9f3820912a0258a61db1564ad1e386b87cb9639d0c794a431a4418ff9cc4a588",
+  "config": {
+    "abstention_threshold": 0.6,
+    "anchor_seconds": 60,
+    "flat_threshold_bps": 10.0,
+    "horizon_minutes": 15,
+    "lookback_minutes": 5,
+    "max_history_gap_seconds": 60,
+    "max_outcome_delay_seconds": 60,
+    "max_source_age_seconds": 30.0,
+    "min_history_points": 6,
+    "schema_version": "forecast-config-v1",
+    "seed": 42,
+    "symbols": [
+      "AAPL",
+      "MSFT",
+      "AMZN",
+      "NFLX",
+      "TSLA"
+    ]
+  },
+  "sessions": [
+    "2026-09-17",
+    "2026-09-18",
+    "2026-09-21",
+    "2026-09-22",
+    "2026-09-23",
+    "2026-09-24",
+    "2026-09-25",
+    "2026-09-28",
+    "2026-09-29",
+    "2026-09-30"
+  ],
+  "observation_count": 19500,
+  "example_count": 18500,
+  "labeled_count": 18500,
+  "data_source": {
+    "adjustment_policy": "unspecified_in_free_sample",
+    "availability_assumption": "Replay only: provider_timestamp and receipt_timestamp both equal bar end; age_seconds=0 is assumed, not measured latency; actual trade and receipt times are unavailable",
+    "calendar": "XNYS",
+    "calendar_version": "exchange-calendars-4.13.2",
+    "csv_files": [
+      {
+        "bytes": 496078,
+        "filename": "AAPL_1min_sample.csv",
+        "first_bar_start_utc": "2026-09-16T08:00:00+00:00",
+        "first_local_date": "2026-09-16",
+        "last_bar_start_utc": "2026-09-30T23:59:00+00:00",
+        "last_local_date": "2026-09-30",
+        "observation_count": 3900,
+        "observed_sessions": [
+          "2026-09-16",
+          "2026-09-17",
+          "2026-09-18",
+          "2026-09-21",
+          "2026-09-22",
+          "2026-09-23",
+          "2026-09-24",
+          "2026-09-25",
+          "2026-09-28",
+          "2026-09-29",
+          "2026-09-30"
+        ],
+        "regular_session_rows": 4290,
+        "rows": 9024,
+        "sha256": "b49fa9cf2920fca279b93c8d58e57dd74e7071bcc72e9d99e4d15bb56bb0af5d",
+        "symbol": "AAPL",
+        "unique_rows": 9024
+      },
+      {
+        "bytes": 473828,
+        "filename": "AMZN_1min_sample.csv",
+        "first_bar_start_utc": "2026-09-16T08:00:00+00:00",
+        "first_local_date": "2026-09-16",
+        "last_bar_start_utc": "2026-09-30T23:59:00+00:00",
+        "last_local_date": "2026-09-30",
+        "observation_count": 3900,
+        "observed_sessions": [
+          "2026-09-16",
+          "2026-09-17",
+          "2026-09-18",
+          "2026-09-21",
+          "2026-09-22",
+          "2026-09-23",
+          "2026-09-24",
+          "2026-09-25",
+          "2026-09-28",
+          "2026-09-29",
+          "2026-09-30"
+        ],
+        "regular_session_rows": 4290,
+        "rows": 8595,
+        "sha256": "46e05006270a38d8841f184223da378a7c894ffedd2496b03bbb127eb00d7749",
+        "symbol": "AMZN",
+        "unique_rows": 8595
+      },
+      {
+        "bytes": 459601,
+        "filename": "MSFT_1min_sample.csv",
+        "first_bar_start_utc": "2026-09-16T08:00:00+00:00",
+        "first_local_date": "2026-09-16",
+        "last_bar_start_utc": "2026-09-30T23:57:00+00:00",
+        "last_local_date": "2026-09-30",
+        "observation_count": 3900,
+        "observed_sessions": [
+          "2026-09-16",
+          "2026-09-17",
+          "2026-09-18",
+          "2026-09-21",
+          "2026-09-22",
+          "2026-09-23",
+          "2026-09-24",
+          "2026-09-25",
+          "2026-09-28",
+          "2026-09-29",
+          "2026-09-30"
+        ],
+        "regular_session_rows": 4290,
+        "rows": 8449,
+        "sha256": "9f6df8aed9c70fd1b8018085011cc566e24b8cc28a36c3803eb860362ddd95aa",
+        "symbol": "MSFT",
+        "unique_rows": 8449
+      },
+      {
+        "bytes": 438446,
+        "filename": "NFLX_1min_sample.csv",
+        "first_bar_start_utc": "2026-09-16T08:00:00+00:00",
+        "first_local_date": "2026-09-16",
+        "last_bar_start_utc": "2026-09-30T23:59:00+00:00",
+        "last_local_date": "2026-09-30",
+        "observation_count": 3900,
+        "observed_sessions": [
+          "2026-09-16",
+          "2026-09-17",
+          "2026-09-18",
+          "2026-09-21",
+          "2026-09-22",
+          "2026-09-23",
+          "2026-09-24",
+          "2026-09-25",
+          "2026-09-28",
+          "2026-09-29",
+          "2026-09-30"
+        ],
+        "regular_session_rows": 4290,
+        "rows": 8377,
+        "sha256": "73f396968112da72fbef84576f278784e731e0c148c0ca9538d4f2d84ff3c491",
+        "symbol": "NFLX",
+        "unique_rows": 8377
+      },
+      {
+        "bytes": 554201,
+        "filename": "TSLA_1min_sample.csv",
+        "first_bar_start_utc": "2026-09-16T08:00:00+00:00",
+        "first_local_date": "2026-09-16",
+        "last_bar_start_utc": "2026-09-30T23:59:00+00:00",
+        "last_local_date": "2026-09-30",
+        "observation_count": 3900,
+        "observed_sessions": [
+          "2026-09-16",
+          "2026-09-17",
+          "2026-09-18",
+          "2026-09-21",
+          "2026-09-22",
+          "2026-09-23",
+          "2026-09-24",
+          "2026-09-25",
+          "2026-09-28",
+          "2026-09-29",
+          "2026-09-30"
+        ],
+        "regular_session_rows": 4290,
+        "rows": 10073,
+        "sha256": "474480c7b142b4b741c7a884e7b5d5a31d8cc038da730247abb82341a8adf74f",
+        "symbol": "TSLA",
+        "unique_rows": 10073
+      }
+    ],
+    "dataset_id": "9f3820912a0258a61db1564ad1e386b87cb9639d0c794a431a4418ff9cc4a588",
+    "documentation_url": "https://firstratedata.com/about/FAQ",
+    "downloads": [
+      {
+        "bytes": 157381,
+        "retrieved_at": "2026-10-02T02:35:09.119873+00:00",
+        "sha256": "d5ff3221893a252e8b92ebddf5de16c794b31dcb9028b44c0aa855fea883be1e",
+        "symbol": "AAPL",
+        "url": "https://frd001.s3.us-east-2.amazonaws.com/frd_sample_stock_AAPL.zip"
+      },
+      {
+        "bytes": 149673,
+        "retrieved_at": "2026-10-02T02:36:03.358726+00:00",
+        "sha256": "45e7e7264b89d8b5f0ac051ae0d4d5b35f5ea55defb6c1b1c3828a24fe8f5035",
+        "symbol": "AMZN",
+        "url": "https://frd001.s3.us-east-2.amazonaws.com/frd_sample_stock_AMZN.zip"
+      },
+      {
+        "bytes": 152381,
+        "retrieved_at": "2026-10-02T02:36:03.379320+00:00",
+        "sha256": "3b85451ca2c13d2b40329d217b0ced12f3fe244a4f3f1293cf5767d964f063c4",
+        "symbol": "MSFT",
+        "url": "https://frd001.s3.us-east-2.amazonaws.com/frd_sample_stock_MSFT.zip"
+      },
+      {
+        "bytes": 137519,
+        "retrieved_at": "2026-10-02T02:36:03.379596+00:00",
+        "sha256": "03bd0dc8d87f52606aab53838fc5a4a7427ee575db77bfbd44749e77d9e3d0c7",
+        "symbol": "NFLX",
+        "url": "https://frd001.s3.us-east-2.amazonaws.com/frd_sample_stock_NFLX.zip"
+      },
+      {
+        "bytes": 181334,
+        "retrieved_at": "2026-10-02T02:36:03.436679+00:00",
+        "sha256": "f30a4fceffce22d1fb062ea98ee70e609f684ad43b98e22de68aa92d939a947a",
+        "symbol": "TSLA",
+        "url": "https://frd001.s3.us-east-2.amazonaws.com/frd_sample_stock_TSLA.zip"
+      }
+    ],
+    "exclusions": {
+      "outside_regular_session": 23068,
+      "previous_session_unavailable": 1950
+    },
+    "interval_seconds": 60,
+    "license_url": "https://firstratedata.com/about/license",
+    "observation_count": 19500,
+    "observations_hash": "b9ba583a8bd72dfd23bad685dd832ac79ce056da23d28788afde830abf1d8d72",
+    "page_url": "https://firstratedata.com/free-tick-data",
+    "previous_close_policy": "Last observed regular-session minute close of immediately preceding XNYS session; proxy only, not official daily or auction close; unavailable previous sessions skipped",
+    "product_page_urls": {
+      "AAPL": "https://firstratedata.com/i/stock/AAPL",
+      "AMZN": "https://firstratedata.com/i/stock/AMZN",
+      "MSFT": "https://firstratedata.com/i/stock/MSFT",
+      "NFLX": "https://firstratedata.com/i/stock/NFLX",
+      "TSLA": "https://firstratedata.com/i/stock/TSLA"
+    },
+    "provenance": "historical",
+    "provider": "FirstRate Data",
+    "provider_url": "https://firstratedata.com",
+    "raw_data_policy": "Local only; publish derived research with FirstRate Data attribution",
+    "retrieved_at": "2026-10-02T02:36:03.436679+00:00",
+    "schema_version": "historical-frd-sample-v1",
+    "selected_symbols": [
+      "AAPL",
+      "AMZN",
+      "MSFT",
+      "NFLX",
+      "TSLA"
+    ],
+    "timestamp_semantics": "CSV timestamp marks bar start; close is available at start plus one minute",
+    "timezone": "America/New_York"
+  },
+  "source": {
+    "dependencies": {
+      "exchange-calendars": "4.13.2",
+      "numpy": "2.5.2",
+      "pydantic": "2.13.4",
+      "scikit-learn": "1.9.1"
+    },
+    "package_version": "0.1.0",
+    "python": "3.13.5",
+    "source_sha256": "9730bf3978e2ce2237ea6ed7ab14ba7fca844a31bc5bfe3dd34e3edc78e9246b"
+  },
+  "baseline": {
+    "report_id": "ef38a33be2a4c2dcb7e34a50fc49e832548d484f18c91416242d5c71b51fa3c2",
+    "evaluation_kind": "historical_benchmark",
+    "split": {
+      "test": {
+        "end": "2026-09-30T19:45:00+00:00",
+        "examples": 3700,
+        "sessions": [
+          "2026-09-29",
+          "2026-09-30"
+        ],
+        "start": "2026-09-29T13:36:00+00:00"
+      },
+      "train": {
+        "end": "2026-09-24T19:45:00+00:00",
+        "examples": 11100,
+        "sessions": [
+          "2026-09-17",
+          "2026-09-18",
+          "2026-09-21",
+          "2026-09-22",
+          "2026-09-23",
+          "2026-09-24"
+        ],
+        "start": "2026-09-17T13:36:00+00:00"
+      },
+      "validation": {
+        "end": "2026-09-28T19:45:00+00:00",
+        "examples": 3700,
+        "sessions": [
+          "2026-09-25",
+          "2026-09-28"
+        ],
+        "start": "2026-09-25T13:36:00+00:00"
+      }
+    },
+    "limitations": [
+      "This chronological holdout is not evidence of profitability or robustness across future regimes.",
+      "No Jev API inference was performed in this run.",
+      "Adjacent 15-minute targets overlap. Rows are correlated; uncertainty uses whole sessions only.",
+      "Accuracy intervals are omitted when fewer than five test sessions are available.",
+      "Flat-band and confidence thresholds were fixed before evaluating the test split.",
+      "Historical minute closes use reconstructed bar-end availability, not measured live receipt timestamps.",
+      "Previous close is the preceding regular session's last minute close; sample adjustment type is unspecified.",
+      "This small date window and fixed instrument universe do not establish future or regime-wide accuracy."
+    ],
+    "models": [
+      {
+        "key": "prior",
+        "model_id": "prior-3bddff271a7aa974",
+        "execution": "local",
+        "metrics": {
+          "eligible": 3700,
+          "scored": 3700,
+          "errors": 0,
+          "abstained": 3700,
+          "coverage": 0.0,
+          "accuracy": 0.40702702702702703,
+          "macro_f1": 0.19285439877064925,
+          "log_loss": 1.0899419733556286,
+          "brier_score": 0.6605184538797315,
+          "selective_accuracy": null,
+          "class_counts": {
+            "DOWN": 1140,
+            "FLAT": 1506,
+            "UP": 1054
+          },
+          "api_cost_estimate_usd": 0,
+          "input_tokens": 0
+        },
+        "by_symbol": {
+          "AAPL": {
+            "eligible": 740,
+            "scored": 740,
+            "errors": 0,
+            "abstained": 740,
+            "coverage": 0.0,
+            "accuracy": 0.4851351351351351,
+            "macro_f1": 0.21777373369730058,
+            "log_loss": 1.0623188967234385,
+            "brier_score": 0.6403387605414325,
+            "selective_accuracy": null,
+            "class_counts": {
+              "DOWN": 240,
+              "FLAT": 359,
+              "UP": 141
+            },
+            "api_cost_estimate_usd": 0,
+            "input_tokens": 0
+          },
+          "AMZN": {
+            "eligible": 740,
+            "scored": 740,
+            "errors": 0,
+            "abstained": 740,
+            "coverage": 0.0,
+            "accuracy": 0.3581081081081081,
+            "macro_f1": 0.175787728026534,
+            "log_loss": 1.1074419712495944,
+            "brier_score": 0.6732702059019511,
+            "selective_accuracy": null,
+            "class_counts": {
+              "DOWN": 222,
+              "FLAT": 265,
+              "UP": 253
+            },
+            "api_cost_estimate_usd": 0,
+            "input_tokens": 0
+          },
+          "MSFT": {
+            "eligible": 740,
+            "scored": 740,
+            "errors": 0,
+            "abstained": 740,
+            "coverage": 0.0,
+            "accuracy": 0.37972972972972974,
+            "macro_f1": 0.18348024812275546,
+            "log_loss": 1.099225889706933,
+            "brier_score": 0.6673611625705894,
+            "selective_accuracy": null,
+            "class_counts": {
+              "DOWN": 221,
+              "FLAT": 281,
+              "UP": 238
+            },
+            "api_cost_estimate_usd": 0,
+            "input_tokens": 0
+          },
+          "NFLX": {
+            "eligible": 740,
+            "scored": 740,
+            "errors": 0,
+            "abstained": 740,
+            "coverage": 0.0,
+            "accuracy": 0.4810810810810811,
+            "macro_f1": 0.2165450121654501,
+            "log_loss": 1.0609353973251798,
+            "brier_score": 0.6397886292158351,
+            "selective_accuracy": null,
+            "class_counts": {
+              "DOWN": 218,
+              "FLAT": 356,
+              "UP": 166
+            },
+            "api_cost_estimate_usd": 0,
+            "input_tokens": 0
+          },
+          "TSLA": {
+            "eligible": 740,
+            "scored": 740,
+            "errors": 0,
+            "abstained": 740,
+            "coverage": 0.0,
+            "accuracy": 0.3310810810810811,
+            "macro_f1": 0.1658206429780034,
+            "log_loss": 1.1197877117729973,
+            "brier_score": 0.6818335111688499,
+            "selective_accuracy": null,
+            "class_counts": {
+              "DOWN": 239,
+              "FLAT": 245,
+              "UP": 256
+            },
+            "api_cost_estimate_usd": 0,
+            "input_tokens": 0
+          }
+        }
+      },
+      {
+        "key": "momentum",
+        "model_id": "momentum-d21504eed172f302",
+        "execution": "local",
+        "metrics": {
+          "eligible": 3700,
+          "scored": 3700,
+          "errors": 0,
+          "abstained": 3700,
+          "coverage": 0.0,
+          "accuracy": 0.40702702702702703,
+          "macro_f1": 0.19285439877064925,
+          "log_loss": 1.0927335677714343,
+          "brier_score": 0.6623882217137392,
+          "selective_accuracy": null,
+          "class_counts": {
+            "DOWN": 1140,
+            "FLAT": 1506,
+            "UP": 1054
+          },
+          "api_cost_estimate_usd": 0,
+          "input_tokens": 0
+        },
+        "by_symbol": {
+          "AAPL": {
+            "eligible": 740,
+            "scored": 740,
+            "errors": 0,
+            "abstained": 740,
+            "coverage": 0.0,
+            "accuracy": 0.4851351351351351,
+            "macro_f1": 0.21777373369730058,
+            "log_loss": 1.071659569215619,
+            "brier_score": 0.6466500238865905,
+            "selective_accuracy": null,
+            "class_counts": {
+              "DOWN": 240,
+              "FLAT": 359,
+              "UP": 141
+            },
+            "api_cost_estimate_usd": 0,
+            "input_tokens": 0
+          },
+          "AMZN": {
+            "eligible": 740,
+            "scored": 740,
+            "errors": 0,
+            "abstained": 740,
+            "coverage": 0.0,
+            "accuracy": 0.3581081081081081,
+            "macro_f1": 0.175787728026534,
+            "log_loss": 1.107036929242757,
+            "brier_score": 0.6729887730192419,
+            "selective_accuracy": null,
+            "class_counts": {
+              "DOWN": 222,
+              "FLAT": 265,
+              "UP": 253
+            },
+            "api_cost_estimate_usd": 0,
+            "input_tokens": 0
+          },
+          "MSFT": {
+            "eligible": 740,
+            "scored": 740,
+            "errors": 0,
+            "abstained": 740,
+            "coverage": 0.0,
+            "accuracy": 0.37972972972972974,
+            "macro_f1": 0.18348024812275546,
+            "log_loss": 1.0967591251557263,
+            "brier_score": 0.6655196519938229,
+            "selective_accuracy": null,
+            "class_counts": {
+              "DOWN": 221,
+              "FLAT": 281,
+              "UP": 238
+            },
+            "api_cost_estimate_usd": 0,
+            "input_tokens": 0
+          },
+          "NFLX": {
+            "eligible": 740,
+            "scored": 740,
+            "errors": 0,
+            "abstained": 740,
+            "coverage": 0.0,
+            "accuracy": 0.4810810810810811,
+            "macro_f1": 0.2165450121654501,
+            "log_loss": 1.061678482646498,
+            "brier_score": 0.6401347575690817,
+            "selective_accuracy": null,
+            "class_counts": {
+              "DOWN": 218,
+              "FLAT": 356,
+              "UP": 166
+            },
+            "api_cost_estimate_usd": 0,
+            "input_tokens": 0
+          },
+          "TSLA": {
+            "eligible": 740,
+            "scored": 740,
+            "errors": 0,
+            "abstained": 740,
+            "coverage": 0.0,
+            "accuracy": 0.3310810810810811,
+            "macro_f1": 0.1658206429780034,
+            "log_loss": 1.1265337325965707,
+            "brier_score": 0.686647902099959,
+            "selective_accuracy": null,
+            "class_counts": {
+              "DOWN": 239,
+              "FLAT": 245,
+              "UP": 256
+            },
+            "api_cost_estimate_usd": 0,
+            "input_tokens": 0
+          }
+        }
+      },
+      {
+        "key": "logistic",
+        "model_id": "logistic-e3b6a8f5f07d22ef",
+        "execution": "local",
+        "metrics": {
+          "eligible": 3700,
+          "scored": 3700,
+          "errors": 0,
+          "abstained": 3700,
+          "coverage": 0.0,
+          "accuracy": 0.38756756756756755,
+          "macro_f1": 0.34475400161916464,
+          "log_loss": 1.0894877151307527,
+          "brier_score": 0.6598214975724787,
+          "selective_accuracy": null,
+          "class_counts": {
+            "DOWN": 1140,
+            "FLAT": 1506,
+            "UP": 1054
+          },
+          "api_cost_estimate_usd": 0,
+          "input_tokens": 0
+        },
+        "by_symbol": {
+          "AAPL": {
+            "eligible": 740,
+            "scored": 740,
+            "errors": 0,
+            "abstained": 740,
+            "coverage": 0.0,
+            "accuracy": 0.3810810810810811,
+            "macro_f1": 0.29601084460419497,
+            "log_loss": 1.0972108855574894,
+            "brier_score": 0.6644124587420135,
+            "selective_accuracy": null,
+            "class_counts": {
+              "DOWN": 240,
+              "FLAT": 359,
+              "UP": 141
+            },
+            "api_cost_estimate_usd": 0,
+            "input_tokens": 0
+          },
+          "AMZN": {
+            "eligible": 740,
+            "scored": 740,
+            "errors": 0,
+            "abstained": 740,
+            "coverage": 0.0,
+            "accuracy": 0.3608108108108108,
+            "macro_f1": 0.3126883049750209,
+            "log_loss": 1.0888640629249202,
+            "brier_score": 0.6594044611670142,
+            "selective_accuracy": null,
+            "class_counts": {
+              "DOWN": 222,
+              "FLAT": 265,
+              "UP": 253
+            },
+            "api_cost_estimate_usd": 0,
+            "input_tokens": 0
+          },
+          "MSFT": {
+            "eligible": 740,
+            "scored": 740,
+            "errors": 0,
+            "abstained": 740,
+            "coverage": 0.0,
+            "accuracy": 0.43108108108108106,
+            "macro_f1": 0.38453026623764125,
+            "log_loss": 1.0755379022823985,
+            "brier_score": 0.6519507520583714,
+            "selective_accuracy": null,
+            "class_counts": {
+              "DOWN": 221,
+              "FLAT": 281,
+              "UP": 238
+            },
+            "api_cost_estimate_usd": 0,
+            "input_tokens": 0
+          },
+          "NFLX": {
+            "eligible": 740,
+            "scored": 740,
+            "errors": 0,
+            "abstained": 740,
+            "coverage": 0.0,
+            "accuracy": 0.41081081081081083,
+            "macro_f1": 0.3329230478947539,
+            "log_loss": 1.0867341782311397,
+            "brier_score": 0.6563764892295681,
+            "selective_accuracy": null,
+            "class_counts": {
+              "DOWN": 218,
+              "FLAT": 356,
+              "UP": 166
+            },
+            "api_cost_estimate_usd": 0,
+            "input_tokens": 0
+          },
+          "TSLA": {
+            "eligible": 740,
+            "scored": 740,
+            "errors": 0,
+            "abstained": 740,
+            "coverage": 0.0,
+            "accuracy": 0.35405405405405405,
+            "macro_f1": 0.31870901100573484,
+            "log_loss": 1.0990915466578157,
+            "brier_score": 0.6669633266654262,
+            "selective_accuracy": null,
+            "class_counts": {
+              "DOWN": 239,
+              "FLAT": 245,
+              "UP": 256
+            },
+            "api_cost_estimate_usd": 0,
+            "input_tokens": 0
+          }
+        }
+      },
+      {
+        "key": "logistic-calibrated",
+        "model_id": "logistic-7c6ff2504e4a85b6",
+        "execution": "local",
+        "metrics": {
+          "eligible": 3700,
+          "scored": 3700,
+          "errors": 0,
+          "abstained": 3700,
+          "coverage": 0.0,
+          "accuracy": 0.38756756756756755,
+          "macro_f1": 0.34475400161916464,
+          "log_loss": 1.0891389602928674,
+          "brier_score": 0.6602123399488701,
+          "selective_accuracy": null,
+          "class_counts": {
+            "DOWN": 1140,
+            "FLAT": 1506,
+            "UP": 1054
+          },
+          "api_cost_estimate_usd": 0,
+          "input_tokens": 0
+        },
+        "by_symbol": {
+          "AAPL": {
+            "eligible": 740,
+            "scored": 740,
+            "errors": 0,
+            "abstained": 740,
+            "coverage": 0.0,
+            "accuracy": 0.3810810810810811,
+            "macro_f1": 0.29601084460419497,
+            "log_loss": 1.0947771331167542,
+            "brier_score": 0.6636272133338507,
+            "selective_accuracy": null,
+            "class_counts": {
+              "DOWN": 240,
+              "FLAT": 359,
+              "UP": 141
+            },
+            "api_cost_estimate_usd": 0,
+            "input_tokens": 0
+          },
+          "AMZN": {
+            "eligible": 740,
+            "scored": 740,
+            "errors": 0,
+            "abstained": 740,
+            "coverage": 0.0,
+            "accuracy": 0.3608108108108108,
+            "macro_f1": 0.3126883049750209,
+            "log_loss": 1.0890645133635604,
+            "brier_score": 0.6600965176700008,
+            "selective_accuracy": null,
+            "class_counts": {
+              "DOWN": 222,
+              "FLAT": 265,
+              "UP": 253
+            },
+            "api_cost_estimate_usd": 0,
+            "input_tokens": 0
+          },
+          "MSFT": {
+            "eligible": 740,
+            "scored": 740,
+            "errors": 0,
+            "abstained": 740,
+            "coverage": 0.0,
+            "accuracy": 0.43108108108108106,
+            "macro_f1": 0.38453026623764125,
+            "log_loss": 1.07917949665617,
+            "brier_score": 0.6542529108534025,
+            "selective_accuracy": null,
+            "class_counts": {
+              "DOWN": 221,
+              "FLAT": 281,
+              "UP": 238
+            },
+            "api_cost_estimate_usd": 0,
+            "input_tokens": 0
+          },
+          "NFLX": {
+            "eligible": 740,
+            "scored": 740,
+            "errors": 0,
+            "abstained": 740,
+            "coverage": 0.0,
+            "accuracy": 0.41081081081081083,
+            "macro_f1": 0.3329230478947539,
+            "log_loss": 1.0872337086222643,
+            "brier_score": 0.6582014127483415,
+            "selective_accuracy": null,
+            "class_counts": {
+              "DOWN": 218,
+              "FLAT": 356,
+              "UP": 166
+            },
+            "api_cost_estimate_usd": 0,
+            "input_tokens": 0
+          },
+          "TSLA": {
+            "eligible": 740,
+            "scored": 740,
+            "errors": 0,
+            "abstained": 740,
+            "coverage": 0.0,
+            "accuracy": 0.35405405405405405,
+            "macro_f1": 0.31870901100573484,
+            "log_loss": 1.0954399497055878,
+            "brier_score": 0.6648836451387551,
+            "selective_accuracy": null,
+            "class_counts": {
+              "DOWN": 239,
+              "FLAT": 245,
+              "UP": 256
+            },
+            "api_cost_estimate_usd": 0,
+            "input_tokens": 0
+          }
+        }
+      }
+    ]
+  },
+  "retrospective_sample": {
+    "report_id": "5ff37b751dbdf256795f8cd4606018c20a4d865ad265320559ddc20063fbde7c",
+    "evaluation_kind": "retrospective_historical_sample",
+    "split": {
+      "test_sample": {
+        "examples": 10,
+        "sessions": [
+          "2026-09-29",
+          "2026-09-30"
+        ]
+      }
+    },
+    "limitations": [
+      "Jev calls were made after these historical outcomes occurred; this is retrospective inference.",
+      "Historical dates or patterns may appear in model training data; contamination cannot be ruled out.",
+      "A maximum ten-case sample is too small to estimate dependable model accuracy or profitability.",
+      "Every baseline is scored on the identical frozen cohort, including Jev errors and abstentions.",
+      "Historical source availability is reconstructed at minute-bar end; real network receipt was not observed.",
+      "Thresholds and the selection rule were fixed before inspecting the test results."
+    ],
+    "models": [
+      {
+        "key": "prior",
+        "model_id": "prior-3bddff271a7aa974",
+        "execution": "local",
+        "metrics": {
+          "eligible": 10,
+          "scored": 10,
+          "errors": 0,
+          "abstained": 10,
+          "coverage": 0.0,
+          "accuracy": 0.3,
+          "macro_f1": 0.15384615384615385,
+          "log_loss": 1.1486729274334007,
+          "brier_score": 0.7000099962191528,
+          "selective_accuracy": null,
+          "class_counts": {
+            "DOWN": 5,
+            "FLAT": 3,
+            "UP": 2
+          },
+          "api_cost_estimate_usd": 0,
+          "input_tokens": 0
+        },
+        "by_symbol": {
+          "AAPL": {
+            "eligible": 10,
+            "scored": 10,
+            "errors": 0,
+            "abstained": 10,
+            "coverage": 0.0,
+            "accuracy": 0.3,
+            "macro_f1": 0.15384615384615385,
+            "log_loss": 1.1486729274334007,
+            "brier_score": 0.7000099962191528,
+            "selective_accuracy": null,
+            "class_counts": {
+              "DOWN": 5,
+              "FLAT": 3,
+              "UP": 2
+            },
+            "api_cost_estimate_usd": 0,
+            "input_tokens": 0
+          }
+        }
+      },
+      {
+        "key": "momentum",
+        "model_id": "momentum-d21504eed172f302",
+        "execution": "local",
+        "metrics": {
+          "eligible": 10,
+          "scored": 10,
+          "errors": 0,
+          "abstained": 10,
+          "coverage": 0.0,
+          "accuracy": 0.3,
+          "macro_f1": 0.15384615384615385,
+          "log_loss": 1.1844943036809885,
+          "brier_score": 0.7261252768957537,
+          "selective_accuracy": null,
+          "class_counts": {
+            "DOWN": 5,
+            "FLAT": 3,
+            "UP": 2
+          },
+          "api_cost_estimate_usd": 0,
+          "input_tokens": 0
+        },
+        "by_symbol": {
+          "AAPL": {
+            "eligible": 10,
+            "scored": 10,
+            "errors": 0,
+            "abstained": 10,
+            "coverage": 0.0,
+            "accuracy": 0.3,
+            "macro_f1": 0.15384615384615385,
+            "log_loss": 1.1844943036809885,
+            "brier_score": 0.7261252768957537,
+            "selective_accuracy": null,
+            "class_counts": {
+              "DOWN": 5,
+              "FLAT": 3,
+              "UP": 2
+            },
+            "api_cost_estimate_usd": 0,
+            "input_tokens": 0
+          }
+        }
+      },
+      {
+        "key": "logistic",
+        "model_id": "logistic-e3b6a8f5f07d22ef",
+        "execution": "local",
+        "metrics": {
+          "eligible": 10,
+          "scored": 10,
+          "errors": 0,
+          "abstained": 10,
+          "coverage": 0.0,
+          "accuracy": 0.1,
+          "macro_f1": 0.06060606060606061,
+          "log_loss": 1.1985604566114811,
+          "brier_score": 0.7329950796895951,
+          "selective_accuracy": null,
+          "class_counts": {
+            "DOWN": 5,
+            "FLAT": 3,
+            "UP": 2
+          },
+          "api_cost_estimate_usd": 0,
+          "input_tokens": 0
+        },
+        "by_symbol": {
+          "AAPL": {
+            "eligible": 10,
+            "scored": 10,
+            "errors": 0,
+            "abstained": 10,
+            "coverage": 0.0,
+            "accuracy": 0.1,
+            "macro_f1": 0.06060606060606061,
+            "log_loss": 1.1985604566114811,
+            "brier_score": 0.7329950796895951,
+            "selective_accuracy": null,
+            "class_counts": {
+              "DOWN": 5,
+              "FLAT": 3,
+              "UP": 2
+            },
+            "api_cost_estimate_usd": 0,
+            "input_tokens": 0
+          }
+        }
+      },
+      {
+        "key": "logistic-calibrated",
+        "model_id": "logistic-7c6ff2504e4a85b6",
+        "execution": "local",
+        "metrics": {
+          "eligible": 10,
+          "scored": 10,
+          "errors": 0,
+          "abstained": 10,
+          "coverage": 0.0,
+          "accuracy": 0.1,
+          "macro_f1": 0.06060606060606061,
+          "log_loss": 1.1623895439767216,
+          "brier_score": 0.7091466878720771,
+          "selective_accuracy": null,
+          "class_counts": {
+            "DOWN": 5,
+            "FLAT": 3,
+            "UP": 2
+          },
+          "api_cost_estimate_usd": 0,
+          "input_tokens": 0
+        },
+        "by_symbol": {
+          "AAPL": {
+            "eligible": 10,
+            "scored": 10,
+            "errors": 0,
+            "abstained": 10,
+            "coverage": 0.0,
+            "accuracy": 0.1,
+            "macro_f1": 0.06060606060606061,
+            "log_loss": 1.1623895439767216,
+            "brier_score": 0.7091466878720771,
+            "selective_accuracy": null,
+            "class_counts": {
+              "DOWN": 5,
+              "FLAT": 3,
+              "UP": 2
+            },
+            "api_cost_estimate_usd": 0,
+            "input_tokens": 0
+          }
+        }
+      },
+      {
+        "key": "jev-retrospective",
+        "model_id": "jev-1.13.0",
+        "execution": "live_api",
+        "metrics": {
+          "eligible": 10,
+          "scored": 10,
+          "errors": 0,
+          "abstained": 10,
+          "coverage": 0.0,
+          "accuracy": 0.2,
+          "macro_f1": 0.13333333333333333,
+          "log_loss": 4.938694356184921,
+          "brier_score": 0.9084,
+          "selective_accuracy": null,
+          "class_counts": {
+            "DOWN": 5,
+            "FLAT": 3,
+            "UP": 2
+          },
+          "api_cost_estimate_usd": 0.00030487800000000007,
+          "input_tokens": 7259
+        },
+        "by_symbol": {
+          "AAPL": {
+            "eligible": 10,
+            "scored": 10,
+            "errors": 0,
+            "abstained": 10,
+            "coverage": 0.0,
+            "accuracy": 0.2,
+            "macro_f1": 0.13333333333333333,
+            "log_loss": 4.938694356184921,
+            "brier_score": 0.9084,
+            "selective_accuracy": null,
+            "class_counts": {
+              "DOWN": 5,
+              "FLAT": 3,
+              "UP": 2
+            },
+            "api_cost_estimate_usd": 0.00030487800000000007,
+            "input_tokens": 7259
+          }
+        }
+      }
+    ]
+  }
+}

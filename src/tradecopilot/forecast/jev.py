@@ -273,6 +273,8 @@ class JevForecaster(JevAdvisor):
         if problem:
             return failure(problem)
         if prospective:
+            if example.provenance == "historical":
+                return failure("historical_input_requires_retrospective_mode")
             age = (now - example.as_of).total_seconds()
             if age < 0:
                 return failure("future_as_of")

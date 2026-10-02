@@ -49,15 +49,23 @@ All paths below are relative to `src/tradecopilot/`.
 | `forecast/features.py` | Receipt-aware causal feature construction and separately matured future outcome labels |
 | `forecast/dataset.py` | Deterministic dataset construction, immutable exports and manifest/content verification |
 | `forecast/demo.py` | Deterministic synthetic observation generation for the offline demo |
+| `forecast/historical.py` | Bounded archive/CSV import, source hashes, explicit historical provenance, bar-end replay timing and causal prior-session close |
 | `forecast/baselines.py` | Training-only CPU model fitting/scaling, validation temperature calibration, prediction and JSON model artifacts |
 | `forecast/jev.py` | Pinned typed Jev forecast requests, probability validation, prospective timing, shared ledger/run caps and clearly labeled local fixtures |
 | `forecast/evaluation.py` | Purged session splits, probability metrics, calibration/coverage diagnostics and session-level bootstrap intervals |
 | `forecast/experiment.py` | Reproducible experiments, per-symbol results, prediction cases, source fingerprints and verified report bundles |
+| `forecast/retrospective.py` | Frozen outcome-independent test selection, opt-in bounded historical Jev calls and identical-cohort CPU comparisons |
 | `forecast/cli.py` | Explicit offline, collection, paid prediction, grading, status and serving commands |
 | `forecast/service.py`, `forecast/dashboard.html` | Saved-report HTTP routes, repeated bundle verification and the static report interface |
 | `providers/finnhub.py` | Price-only quote normalization and sanitized permanent/transient failure classification |
 | `jev.py`, `market_opinion.py` | Existing strategy-review and independent market-opinion behavior used by the original desk |
 | `auth.py` | OS-keychain/environment loading for Jev, Finnhub and the existing providers |
+
+The study entry points in `scripts/run_historical_evaluation.py` and
+`scripts/render_historical_results.py` reproduce archived-data evaluation and
+export charts/aggregate JSON. Plotting is an optional dependency extra. Raw
+provider archives and full private datasets stay outside published artifacts;
+the source license and replay assumptions are recorded alongside derived results.
 
 ### Persistence and failure boundaries
 

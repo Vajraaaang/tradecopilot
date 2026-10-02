@@ -13,7 +13,7 @@ from tradecopilot.models import FrozenModel, PriceSnapshot
 
 LABELS = ("DOWN", "FLAT", "UP")
 ForecastLabel = Literal["DOWN", "FLAT", "UP"]
-Provenance = Literal["synthetic", "market"]
+Provenance = Literal["synthetic", "market", "historical"]
 FEATURE_VERSION = "causal-price-v1"
 LABEL_VERSION = "forward-return-v1"
 FEATURE_NAMES = (

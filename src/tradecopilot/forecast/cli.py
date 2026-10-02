@@ -34,6 +34,9 @@ def add_forecast_parser(subparsers: Any) -> None:
     experiment.add_argument("dataset", type=Path)
     experiment.add_argument("--output-dir", type=Path, required=True)
     experiment.add_argument("--include-jev-fixture", action="store_true", help="Add an offline stub, not Jev inference")
+    experiment.add_argument(
+        "--historical-source", type=Path, help="Verified source/replay metadata for a historical dataset"
+    )
     predict = commands.add_parser("predict", help="Make one opt-in paid prospective Jev forecast")
     predict.add_argument("symbol")
     predict.add_argument("--store", type=Path, default=DEFAULT_STORE)
@@ -108,7 +111,14 @@ def _dispatch(args: argparse.Namespace) -> int:
         return 0
     if command == "experiment":
         manifest, examples = load_dataset(args.dataset)
-        report_path = run_experiment(manifest, examples, args.output_dir, include_jev_fixture=args.include_jev_fixture)
+        historical_source = json.loads(args.historical_source.read_text()) if args.historical_source else None
+        report_path = run_experiment(
+            manifest,
+            examples,
+            args.output_dir,
+            include_jev_fixture=args.include_jev_fixture,
+            historical_source=historical_source,
+        )
         _output({"report": str(report_path), "evidence": load_report(report_path)["evaluation_kind"]})
         return 0
     if command == "collect":
@@ -158,7 +168,11 @@ def _dispatch(args: argparse.Namespace) -> int:
             raise ValueError("The outcome observation store does not exist.")
         with ForecastStore(args.store) as store:
             path = write_pilot_report(
-                config, inputs, predictions, store.observations(), args.output_dir,
+                config,
+                inputs,
+                predictions,
+                store.observations(),
+                args.output_dir,
                 recorded_predictions=store.predictions(),
             )
         _output({"report": str(path), "evidence": "prospective_pilot"})

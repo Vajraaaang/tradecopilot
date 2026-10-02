@@ -166,6 +166,11 @@ only calibrates the CPU logistic baseline.
 
 ## Container and checks
 
+For real archived-minute evaluation and the executed results, see
+[historical-evaluation.md](historical-evaluation.md). Historical observations have
+their own provenance and require source/replay metadata. They cannot be submitted
+as prospective forecasts. The study scripts make paid calls only with `--jev`.
+
 ```bash
 docker build -t tradecopilot-forecast .
 docker run --rm -p 127.0.0.1:8766:8766 tradecopilot-forecast

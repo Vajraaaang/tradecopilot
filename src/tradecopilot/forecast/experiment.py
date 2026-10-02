@@ -49,7 +49,8 @@ def _json(value: Any) -> str:
 
 
 def _group_metrics(
-    examples: Sequence[ForecastExample], predictions: Sequence[ForecastPrediction],
+    examples: Sequence[ForecastExample],
+    predictions: Sequence[ForecastPrediction],
 ) -> dict[str, Any]:
     groups = {}
     for symbol in sorted({row.symbol for row in examples}):
@@ -60,7 +61,8 @@ def _group_metrics(
 
 
 def _cases(
-    examples: Sequence[ForecastExample], groups: dict[str, list[ForecastPrediction]],
+    examples: Sequence[ForecastExample],
+    groups: dict[str, list[ForecastPrediction]],
 ) -> list[dict[str, Any]]:
     lookup = {key: {p.example_id: p for p in predictions} for key, predictions in groups.items()}
     return [
@@ -76,7 +78,8 @@ def _cases(
             "exclusion_reason": row.exclusion_reason,
             "predictions": {
                 key: values[row.example_id].model_dump(mode="json")
-                for key, values in lookup.items() if row.example_id in values
+                for key, values in lookup.items()
+                if row.example_id in values
             },
         }
         for row in examples
@@ -107,7 +110,8 @@ def load_report(path: Path) -> dict[str, Any]:
     try:
         report = json.loads(path.read_text(encoding="utf-8"))
         if (
-            not isinstance(report, dict) or report.get("schema_version") != REPORT_VERSION
+            not isinstance(report, dict)
+            or report.get("schema_version") != REPORT_VERSION
             or report.get("report_id") != content_hash({k: v for k, v in report.items() if k != "report_id"})
             or not isinstance(report.get("artifacts"), dict)
             or not {"predictions.jsonl", "examples.jsonl"} <= report["artifacts"].keys()
@@ -116,8 +120,10 @@ def load_report(path: Path) -> dict[str, Any]:
         for name, digest in report["artifacts"].items():
             artifact = path.parent / name
             if (
-                Path(name).name != name or name in {".", "..", "report.json"}
-                or artifact.is_symlink() or _file_hash(artifact) != digest
+                Path(name).name != name
+                or name in {".", "..", "report.json"}
+                or artifact.is_symlink()
+                or _file_hash(artifact) != digest
             ):
                 raise ValueError("invalid artifact")
     except (ValueError, OSError, TypeError, KeyError):
@@ -131,17 +137,26 @@ def run_experiment(
     out_dir: Path,
     *,
     include_jev_fixture: bool = True,
+    historical_source: dict[str, Any] | None = None,
 ) -> Path:
     _verify(manifest, list(examples))
+    if manifest.provenance == "historical":
+        if (
+            not isinstance(historical_source, dict)
+            or historical_source.get("dataset_id") != manifest.dataset_id
+            or historical_source.get("observations_hash") != manifest.observations_hash
+            or not historical_source.get("availability_assumption")
+        ):
+            raise ValueError("historical evaluation requires matching source and replay-availability metadata")
+    elif historical_source is not None:
+        raise ValueError("historical source metadata requires historical provenance")
     if out_dir.exists():
         raise FileExistsError("choose a new output directory; experiment bundles are immutable")
     split = split_examples(examples)
     config = manifest.config
     models = {name: fit_model(name, split["train"], config) for name in ("prior", "momentum", "logistic")}
     models["logistic-calibrated"] = calibrate_model(models["logistic"], split["validation"])
-    groups = {
-        name: predict_model(model, split["test"], manifest.dataset_id, config) for name, model in models.items()
-    }
+    groups = {name: predict_model(model, split["test"], manifest.dataset_id, config) for name, model in models.items()}
     if include_jev_fixture:
         from tradecopilot.forecast.jev import fixture_predictions
 
@@ -154,11 +169,15 @@ def run_experiment(
         "title": "TradeCopilot forecast evaluation",
         "dataset": manifest.model_dump(mode="json"),
         "source": source,
-        "experiment_id": content_hash({
-            "dataset_id": manifest.dataset_id, "source": source,
-            "models": {name: model.model_id for name, model in models.items()},
-            "jev_fixture": include_jev_fixture,
-        }),
+        "experiment_id": content_hash(
+            {
+                "dataset_id": manifest.dataset_id,
+                "source": source,
+                "models": {name: model.model_id for name, model in models.items()},
+                "jev_fixture": include_jev_fixture,
+                "historical_source": historical_source,
+            }
+        ),
         "split": {
             name: {
                 "examples": len(rows),
@@ -168,40 +187,62 @@ def run_experiment(
             }
             for name, rows in split.items()
         },
-        "models": [_model_summary(name, predictions, split["test"], models.get(name))
-                   for name, predictions in groups.items()],
+        "models": [
+            _model_summary(name, predictions, split["test"], models.get(name)) for name, predictions in groups.items()
+        ],
         "cases": _cases(split["test"], groups),
         "limitations": [
             "Synthetic demo scores verify the pipeline; they do not estimate real-market performance."
-            if manifest.provenance == "synthetic" else
-            "This chronological holdout is not evidence of profitability or robustness across future regimes.",
+            if manifest.provenance == "synthetic"
+            else "This chronological holdout is not evidence of profitability or robustness across future regimes.",
             "The Jev fixture is a local contract stub, not Jev inference or a Jev accuracy measurement."
-            if include_jev_fixture else "No Jev API inference was performed in this run.",
+            if include_jev_fixture
+            else "No Jev API inference was performed in this run.",
             "Adjacent 15-minute targets overlap. Rows are correlated; uncertainty uses whole sessions only.",
             "Accuracy intervals are omitted when fewer than five test sessions are available.",
             "Flat-band and confidence thresholds were fixed before evaluating the test split.",
         ],
     }
     files = {name + ".json": model.model_dump_json(indent=2) + "\n" for name, model in models.items()}
-    files.update({
-        "dataset-manifest.json": manifest.model_dump_json(indent=2) + "\n",
-        "examples.jsonl": "".join(row.model_dump_json() + "\n" for row in examples),
-        "splits.json": _json({name: [row.example_id for row in rows] for name, rows in split.items()}),
-        "predictions.jsonl": "".join(p.model_dump_json() + "\n" for values in groups.values() for p in values),
-    })
+    files.update(
+        {
+            "dataset-manifest.json": manifest.model_dump_json(indent=2) + "\n",
+            "examples.jsonl": "".join(row.model_dump_json() + "\n" for row in examples),
+            "splits.json": _json({name: [row.example_id for row in rows] for name, rows in split.items()}),
+            "predictions.jsonl": "".join(p.model_dump_json() + "\n" for values in groups.values() for p in values),
+        }
+    )
+    if historical_source is not None:
+        report["data_source"] = historical_source
+        report["limitations"].extend(
+            [
+                "Historical minute closes use reconstructed bar-end availability, "
+                "not measured live receipt timestamps.",
+                "Previous close is the preceding regular session's last minute close; "
+                "sample adjustment type is unspecified.",
+                "This small date window and fixed instrument universe do not establish future or regime-wide accuracy.",
+            ]
+        )
+        files["historical-source.json"] = _json(historical_source)
     return _write_bundle(out_dir, report, files)
 
 
 def _model_summary(
-    name: str, predictions: list[ForecastPrediction], examples: Sequence[ForecastExample],
+    name: str,
+    predictions: list[ForecastPrediction],
+    examples: Sequence[ForecastExample],
     model: ModelArtifact | None = None,
 ) -> dict[str, Any]:
     return {
         "key": name,
         "label": {
-            "prior": "Training class prior", "momentum": "Momentum baseline",
-            "logistic": "Logistic regression", "logistic-calibrated": "Logistic + temperature calibration",
-            "jev-fixture": "Jev contract fixture (local stub)", "jev-live": "Jev prospective pilot",
+            "prior": "Training class prior",
+            "momentum": "Momentum baseline",
+            "logistic": "Logistic regression",
+            "logistic-calibrated": "Logistic + temperature calibration",
+            "jev-fixture": "Jev contract fixture (local stub)",
+            "jev-live": "Jev prospective pilot",
+            "jev-retrospective": "Jev retrospective sample",
         }.get(name, name),
         "model_id": predictions[0].model_id if predictions else None,
         "execution": predictions[0].execution if predictions else None,
@@ -234,10 +275,12 @@ def write_pilot_report(
     for prediction in predictions:
         original = lookup.get(prediction.example_id)
         if (
-            original is None or prediction.execution != "live_api"
+            original is None
+            or prediction.execution != "live_api"
             or (prediction.status != "error" and not original.as_of <= prediction.generated_at < original.target_time)
             or prediction.prediction_id not in recorded_ids
-            or prediction.model_id != JEV_MODEL or prediction.model_version != JEV_MODEL
+            or prediction.model_id != JEV_MODEL
+            or prediction.model_version != JEV_MODEL
             or prediction.prompt_version != FORECAST_PROMPT_VERSION
             or prediction.reason == "retrospective_api_inference"
             or (prediction.status != "error" and not prediction.request_id)
@@ -254,8 +297,10 @@ def write_pilot_report(
         "title": "TradeCopilot Jev prospective pilot",
         "dataset": {
             "dataset_id": content_hash({"inputs": list(lookup), "observations": observation_hash}),
-            "config": config.model_dump(mode="json"), "provenance": "market",
-            "observation_count": len(observations), "example_count": len(labeled),
+            "config": config.model_dump(mode="json"),
+            "provenance": "market",
+            "observation_count": len(observations),
+            "example_count": len(labeled),
             "labeled_count": sum(row.label is not None for row in labeled),
             "sessions": sorted({row.session_date.isoformat() for row in inputs}),
             "observations_hash": observation_hash,
