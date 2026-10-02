@@ -37,6 +37,8 @@ quotes, one paced retry, and no final quote failures. Twelve responses were olde
 than the configured 30-second input limit. They remained recorded for auditing
 and were not silently treated as fresh inputs.
 
-Hosted CI results are attached to the pull request. The workflow repeats the
+The implementation is recorded in [PR #2](https://github.com/Vajraaaang/tradecopilot/pull/2).
+[Hosted CI passed for implementation commit `fa6f539`](https://github.com/Vajraaaang/tradecopilot/actions/runs/36909022744).
+The workflow repeats the
 offline checks on Linux/Python 3.12 and verifies the image with networking disabled;
 it does not use provider keys or execute paid inference.

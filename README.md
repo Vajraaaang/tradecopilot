@@ -7,6 +7,69 @@ features, compares CPU baselines, and evaluates opt-in Jev forecasts against
 subsequently observed outcomes. It is analysis software: it never places,
 previews, modifies, replaces, or cancels an order.
 
+[![Offline validation](https://github.com/Vajraaaang/tradecopilot/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Vajraaaang/tradecopilot/actions/workflows/ci.yml)
+
+## Project overview
+
+| Workflow | Purpose | Outputs |
+| --- | --- | --- |
+| Jev market opinion | Interpret available intraday market context in the visual desk | BUY / HOLD / SELL / WAIT judgments, class probabilities, confidence, source time and usage |
+| Jev prospective forecast | Predict a defined future price direction before its target time | Persisted UP / FLAT / DOWN probabilities, abstention status, request provenance and later outcome labels |
+| Offline evaluation | Compare models on a chronological holdout without paid inference | CPU model artifacts, calibration and coverage diagnostics, quality metrics and verified report bundles |
+| Deterministic strategy desk | Apply the existing momentum rules to replay or supported live evidence | Watch, entry, hold, exit-warning and reentry analysis states, risk plans and journal entries |
+
+The AI engineering work includes API integration, causal data preparation,
+baseline model training, evaluation, inference controls, reproducible artifacts,
+operational telemetry, and containerized execution. Jev is accessed through its
+hosted API; the learned local baseline is logistic regression.
+
+### Implemented components
+
+| Component | Implementation |
+| --- | --- |
+| Typed inference | Pinned `jev-1.13.0`, structured choice responses, finite normalized probabilities, model/prompt versions, and label-free requests |
+| Inference controls | Shared persistent 100-attempt ledger, 30-second cooldown/cache, atomic per-run limits of 10 attempts and $0.05, conservative failed-call reservations, and zero automatic Jev retries |
+| Durable market data | Finnhub last-price observations in append-only SQLite, exact deduplication, provider and receipt timestamps, and restart-aware request pacing |
+| Causal features | 1- and 5-minute returns, 5-minute range and return volatility, change from previous close, source age and history count |
+| Outcome labeling | Default 15-minute horizon, fixed ±10 bps FLAT band, bounded outcome receipt window, and XNYS holiday/DST/early-close checks |
+| CPU baselines | Training-class prior, momentum-bucket frequencies, class-balanced logistic regression, and a validation-calibrated logistic variant |
+| Evaluation | Whole-session chronological splits, purged overlapping label windows, training-only scaling, validation-only temperature selection, and untouched test scoring |
+| Diagnostics | Accuracy, macro F1, log loss, Brier score, confusion matrix, per-class reliability, coverage/selective accuracy, per-symbol results, errors, latency and cost |
+| Reproducibility | Hashed datasets/configurations, stable input identities, source/dependency fingerprints, immutable result bundles and JSON model export |
+| Report application | Saved-result dashboard with model/class/symbol filters, prediction-versus-actual examples, provenance labels and integrity-backed health |
+| Delivery and testing | Python wheel/sdist, unprivileged Docker image, Compose, and GitHub Actions tests plus a container check with external networking disabled |
+
+### Forecast data flow
+
+```mermaid
+flowchart LR
+    A[Finnhub quotes] --> B[Append-only SQLite]
+    B --> C[Causal forecast inputs]
+    C --> D[Opt-in prospective Jev call]
+    D --> E[Persisted predictions]
+    B --> F[Later observed outcomes]
+    E --> G[Prospective pilot grading]
+    F --> G
+    C --> H[Versioned labeled dataset]
+    F --> H
+    H --> I[Chronological CPU baseline evaluation]
+    G --> J[Verified result bundles]
+    I --> J
+    J --> K[Read-only report dashboard]
+```
+
+Jev receives only the original causal inputs. Outcome labels are joined after
+their target times. Dataset examples and predictions retain their original
+identities so the later labels cannot rewrite what was known at inference time.
+
+## Forecast dashboard
+
+![Synthetic forecast demonstration](docs/forecast-dashboard.jpg)
+
+This screenshot shows the offline synthetic demonstration. The application
+also displays recorded prospective pilots with their own evidence label.
+Neither synthetic scores nor a three-case pilot establish real-market accuracy.
+
 ## Forecasting quick start
 
 Run the complete synthetic demonstration without credentials or API charges:
@@ -39,6 +102,39 @@ see [the forecasting guide](docs/forecasting.md). No model has demonstrated
 profitable trading or generalizable market accuracy in this repository.
 The [validation snapshot](docs/validation-2026-10-01.md) records executed checks
 and the limits of the small prospective pilot.
+
+### Executed validation
+
+| Check | Recorded result |
+| --- | --- |
+| Local regression suite | 426 tests passed |
+| Static analysis | Ruff passed; strict mypy passed on 55 source files |
+| Clean runtime | Docker served the synthetic report as UID 10001 with external networking disabled |
+| Package delivery | Wheel and source distribution built; dashboard asset verified in the wheel |
+| Browser | Report rendering, diagnostic selectors and filters verified without observed console errors |
+| Offline dataset | 9,640 synthetic observations, 2,240 examples, 1,640 labeled outcomes, and 615 test examples across eight sessions |
+| Live Jev integration pilot | Three forecasts joined to three later outcomes; two abstentions, no inference errors; estimated cost $0.000093198 |
+
+These are the dated results recorded in the validation snapshot. The CI badge
+links to current checks. The live pilot used 2,219 input tokens; a multi-session
+held-out real-market evaluation is still needed before any predictive-performance
+claim.
+
+### Documentation and source map
+
+- [Forecasting guide](docs/forecasting.md): configuration, collection, labels,
+  experiments, live pilots, Docker and evaluation limits.
+- [Architecture](docs/architecture.md): both applications, module ownership,
+  storage and inference boundaries.
+- [Validation snapshot](docs/validation-2026-10-01.md): executed evidence and its
+  limits, with the implementation CI run.
+- [Implementation history](docs/implementation-history.md): original monitor,
+  Jev/Finnhub integration and forecast-platform changes.
+- [`src/tradecopilot/forecast/`](src/tradecopilot/forecast): forecast contracts,
+  storage, collection, features, labels, models, evaluation, CLI and report UI.
+- [`tests/test_forecast_*.py`](tests): forecast and failure-path regression coverage.
+- [Example configuration](examples/forecast-config.json) and
+  [CI workflow](.github/workflows/ci.yml).
 
 The visual desk follows the supplied Robinhood Legend workspace and the
 supplied Solana color reference. Its feather and four chart-tool SVGs use exact
@@ -325,6 +421,7 @@ is synthetic and must not be treated as live evidence.
 ## Verification
 
 ```bash
+uv sync --frozen --all-extras
 uv run pytest
 uv run ruff check .
 uv run mypy src
@@ -367,7 +464,9 @@ Architecture, data rules, and operations:
   remains `DATA_INSUFFICIENT` until selected and evaluated with fresh live data.
 - `logout robinhood` clears local keychain material; remote OAuth revocation is
   not implemented and must be completed in Robinhood if required.
-- SQLite raw observation retention defaults to 10,000 rows.
+- The original strategy journal retains up to 10,000 raw operational observations
+  by default. The separate forecast store retains its observations without
+  automatic pruning.
 - The optional OpenAI explainer/chat receives sanitized decisions and no tools;
   the deterministic engine remains authoritative. Without the optional extra
   and API key, terminal explanations use deterministic templates while visual
