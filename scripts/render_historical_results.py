@@ -20,6 +20,10 @@ NAMES = {
     "logistic": "Logistic",
     "logistic-calibrated": "Logistic + calibration",
     "jev-retrospective": "Jev (retrospective)",
+    "v1-balanced-logistic": "Price LR / balanced",
+    "v1-unweighted-logistic": "Price LR / unweighted",
+    "ohlcv-logistic": "OHLCV LR",
+    "ohlcv-hgb": "OHLCV boosting",
 }
 COLORS = ["#94a3a0", "#6e9386", "#367363", "#184f42", "#b16d2b"]
 LABEL_COLORS = {"DOWN": "#b85151", "FLAT": "#a68b50", "UP": "#34745f"}

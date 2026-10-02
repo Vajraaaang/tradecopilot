@@ -64,6 +64,13 @@ identities so the later labels cannot rewrite what was known at inference time.
 
 ## Real historical results
 
+The subsequent [OHLCV development milestone](docs/ohlcv-development.md) preserves
+all bar fields, adds 55 causal features and a histogram-boosting comparator, and
+compares five fixed CPU arms on validation only. Unweighted price-only logistic
+scored 45.35% versus 42.03% for the balanced control on those validation sessions;
+the richer models did not win. This is development evidence, with no new Jev
+calls or default promotion. The earlier test results below remain unchanged.
+
 The [historical evaluation](docs/historical-evaluation.md) ran on FirstRate Data's
 free AAPL, MSFT, AMZN, NFLX and TSLA minute samples: 19,500 regular-session
 observations and 18,500 labeled examples, with 3,700 chronological test cases.
