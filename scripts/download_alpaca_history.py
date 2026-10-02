@@ -28,7 +28,7 @@ async def _download(args: argparse.Namespace) -> Path:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", required=True, type=Path)
-    parser.add_argument("--start", type=date.fromisoformat, default=date(2026, 4, 1))
+    parser.add_argument("--start", type=date.fromisoformat, default=date(2026, 4, 20))
     parser.add_argument("--end", type=date.fromisoformat, default=date(2026, 9, 16), help="Exclusive New York date")
     parser.add_argument("--symbols", nargs="+", default=SYMBOLS)
     args = parser.parse_args()

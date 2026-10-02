@@ -34,7 +34,7 @@ A threshold is then chosen only on the separate selection block, from 0.35 throu
 
 The importer uses only Alpaca's historical stock-bars GET endpoint, with explicit `sip`, `raw` adjustment and `1Min` timeframe. [Alpaca documents](https://docs.alpaca.markets/us/docs/market-data-faq) historical SIP access without a subscription when the query end is at least 15 minutes old. This importer uses an end before the current UTC day. Entitlement errors stop the import; there is no subscription purchase, alternate feed fallback, trading call or paid inference.
 
-The default date range is April 1 through September 15, 2026, inclusive. The first available regular session is a primer for the previous-close proxy; missing minutes remain missing. Limits are five symbols, 366 calendar days, 100 response pages, 20 MiB per page and 500,000 raw rows. Both input and output are bounded and validated. An exclusive end date is translated to an inclusive API timestamp just before that boundary.
+The default date range is April 20 through September 15, 2026, inclusive. The first available regular session is a primer for the previous-close proxy; missing minutes remain missing. Limits are five symbols, 366 calendar days, 100 response pages, 20 MiB per page and 500,000 raw rows. Both input and output are bounded and validated. An exclusive end date is translated to an inclusive API timestamp just before that boundary.
 
 Configure credentials through the existing secure prompt; do not put keys in code, command arguments, GitHub or chat:
 
@@ -47,7 +47,7 @@ Then, from this feature branch:
 ```bash
 uv sync --frozen --all-extras
 uv run --no-sync python scripts/download_alpaca_history.py \
-  --start 2026-04-01 --end 2026-09-16 \
+  --start 2026-04-20 --end 2026-09-16 \
   --output-dir .tradecopilot/selective/source-01
 
 uv run --no-sync python scripts/run_selective_study.py \

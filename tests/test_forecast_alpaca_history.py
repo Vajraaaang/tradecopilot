@@ -291,5 +291,5 @@ def test_cli_defaults_and_output_only(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr("sys.argv", ["download_alpaca_history.py", "--output-dir", str(tmp_path / "output")])
     module.main()
     assert calls[0][0].symbols == ("AAPL", "MSFT", "AMZN", "NFLX", "TSLA")
-    assert calls[0][1:3] == (date(2026, 4, 1), date(2026, 9, 16))
+    assert calls[0][1:3] == (date(2026, 4, 20), date(2026, 9, 16))
     assert capsys.readouterr().out == f"{tmp_path / 'output' / 'bars' / 'manifest.json'}\n"
