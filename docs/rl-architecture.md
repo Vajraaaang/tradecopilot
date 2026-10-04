@@ -1,6 +1,6 @@
 # Jev forecasting and offline RL architecture
 
-**Status: proposed design, October 3, 2026. No RL environment or policy has been implemented or trained.** Four parallel specialists planned the environment, Jev integration, evaluation and platform boundaries. Implementation begins with the bounded foundation below after design review.
+**Status: offline MARKET_ONLY foundation and registered neural comparison implemented, October 3, 2026.** Four parallel specialists planned the system and an independent reviewer checked it. Exact accounting, delayed execution, causal observations, training-only normalization, deterministic controls and bounded feedforward/recurrent learners are implemented. [Neural evaluation](rl-neural-evaluation.md) records the actual scope and evidence; forecast caches, Jev context experiments and prospective confirmation remain later work.
 
 ## Evidence and objective
 

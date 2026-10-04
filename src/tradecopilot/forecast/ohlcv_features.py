@@ -5,7 +5,9 @@ from __future__ import annotations
 import math
 from collections import defaultdict
 from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import date, datetime, timedelta
+from decimal import Decimal
 from itertools import pairwise
 from statistics import mean, pstdev
 from typing import Literal, Self
@@ -80,6 +82,17 @@ def _bps(last: float, first: float) -> float:
     return 10_000 * (last / first - 1)
 
 
+@dataclass(frozen=True)
+class _MarketAnchor:
+    symbol: str
+    as_of: datetime
+    session_date: date
+    anchor_price: Decimal
+    config_id: str
+    example_id: str
+    provenance: Literal["historical"] = "historical"
+
+
 class OhlcvFeatureBuilder:
     def __init__(self, bars: Sequence[HistoricalBar]) -> None:
         self._sessions: dict[tuple[str, date], list[HistoricalBar]] = defaultdict(list)
@@ -103,6 +116,24 @@ class OhlcvFeatureBuilder:
             rows.sort(key=lambda bar: (bar.end_time, bar.available_at))
 
     def build(self, example: ForecastExample) -> OhlcvFeatureRecord:
+        return self._build(example)
+
+    def build_as_of(self, symbol: str, as_of: datetime, config_id: str) -> OhlcvFeatureRecord:
+        """Build market features without creating or passing an outcome-bearing example."""
+        as_of = utc(as_of)
+        day = session_for(as_of)
+        if day is None or not config_id:
+            raise ValueError("regular-session as-of anchor and configuration are required")
+        matches = [bar for bar in self._sessions.get((symbol, day), ())
+                   if bar.end_time == as_of and bar.available_at <= as_of]
+        if len(matches) != 1:
+            raise ValueError("OHLCV anchor is missing or late")
+        anchor = matches[0]
+        identity = content_hash({"schema": "label-free-market-anchor-v1", "symbol": symbol,
+                                 "as_of": as_of.isoformat(), "config_id": config_id, "bar_id": anchor.bar_id})
+        return self._build(_MarketAnchor(symbol, as_of, day, anchor.close, config_id, identity))
+
+    def _build(self, example: ForecastExample | _MarketAnchor) -> OhlcvFeatureRecord:
         day = session_for(example.as_of)
         if day != example.session_date or example.provenance != "historical":
             raise ValueError("OHLCV features require a historical regular-session example")

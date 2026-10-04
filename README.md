@@ -16,12 +16,13 @@ previews, modifies, replaces, or cancels an order.
 | Jev market opinion | Interpret available intraday market context in the visual desk | BUY / HOLD / SELL / WAIT judgments, class probabilities, confidence, source time and usage |
 | Jev prospective forecast | Predict a defined future price direction before its target time | Persisted UP / FLAT / DOWN probabilities, abstention status, request provenance and later outcome labels |
 | Offline evaluation | Compare models on a chronological holdout without paid inference | CPU model artifacts, calibration and coverage diagnostics, quality metrics and verified report bundles |
+| Offline policy lab | Compare fixed feedforward/recurrent PPO designs in a cost-aware Gymnasium replay | Sealed chronological model selection, private checkpoints/ledgers and aggregate net-return diagnostics |
 | Deterministic strategy desk | Apply the existing momentum rules to replay or supported live evidence | Watch, entry, hold, exit-warning and reentry analysis states, risk plans and journal entries |
 
 The AI engineering work includes API integration, causal data preparation,
 baseline model training, evaluation, inference controls, reproducible artifacts,
 operational telemetry, and containerized execution. Jev is accessed through its
-hosted API; the learned local baseline is logistic regression.
+hosted API. Local forecasting baselines include logistic regression and histogram boosting; the optional policy lab compares feedforward and recurrent PPO in an offline simulator.
 
 ### Implemented components
 
@@ -64,13 +65,15 @@ identities so the later labels cannot rewrite what was known at inference time.
 
 ## Real historical results
 
-The reviewed [RL architecture and staged plan](docs/rl-architecture.md) separates
-Jev forecast experiments from offline trading-policy learning. It specifies
-causal delayed execution, exact accounting, out-of-fold forecast caches and a
-feedforward/recurrent capacity comparison. The plan is proposed; no RL results
-are implied by the completed CPU forecasting study below.
+The [RL architecture](docs/rl-architecture.md) separates Jev forecasting from
+offline trading-policy learning. Its MARKET_ONLY foundation implements causal
+delayed execution, exact accounting, training-only observation normalization
+and a registered feedforward/recurrent capacity comparison. See the
+[neural evaluation protocol and evidence](docs/rl-neural-evaluation.md).
+Jev forecast caches and prospective policy confirmation remain later work; RL
+policy returns do not establish forecast accuracy.
 
-The next [selective-accuracy experiment](docs/selective-accuracy.md) adds free
+The [selective-accuracy experiment](docs/selective-accuracy.md) adds free
 Alpaca historical-data import, chronological CPU tuning, independent calibration
 and a held-out final test. The 80% selective target includes minimum coverage and
 separate UP/DOWN precision requirements. The real 103-session run selected OHLCV
