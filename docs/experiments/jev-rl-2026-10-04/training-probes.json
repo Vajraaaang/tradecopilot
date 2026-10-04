@@ -1,0 +1,31 @@
+{
+  "registration_id": "96774383ecf524fe2968d28d4d423fbc84722a6b9dcdc8c2713d8980f5c2b005",
+  "base_prepared_data_id": "39486220a35922109079c4a58fe1b80d985de3feafbe4658fa2ba9d44a97b753",
+  "cache_id": "a5828202884e035b53231bd7392e6ade78547eb95a25628da6e78febdea2af76",
+  "scope": "TRAIN-only throughput; probeweights discarded; noTUNE/TESTrewardscoring",
+  "benchmarks": [
+    {
+      "actual_timesteps": 1024,
+      "n_updates": 80,
+      "elapsed_seconds": 5.124284249999619,
+      "training_fps": 199.83278640330622,
+      "n_parameters": 1035524,
+      "device": "cpu",
+      "status": "complete",
+      "initialization_seconds": 1.6099051250057528,
+      "profile": "CONTEXT_ONLY"
+    },
+    {
+      "actual_timesteps": 1024,
+      "n_updates": 80,
+      "elapsed_seconds": 5.050483749997511,
+      "training_fps": 202.75285511026635,
+      "n_parameters": 1035524,
+      "device": "cpu",
+      "status": "complete",
+      "initialization_seconds": 0.010880082998482976,
+      "profile": "JEV_ASSISTED"
+    }
+  ],
+  "probe_id": "9eecce87273ac68f3b71b807c8effb040b9d78003c8a43392b8cd601459eaa17"
+}
