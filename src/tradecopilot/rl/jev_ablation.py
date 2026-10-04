@@ -111,10 +111,13 @@ def _validate_cache(
         if any(
             not isinstance(x, (int, float)) or isinstance(x, bool) or not math.isfinite(x) or not 0 <= x <= 1
             for x in numbers
-        ) or not math.isclose(sum(numbers[:3]), 1, abs_tol=1e-6):
+        ):
+            raise ValueError("cache invalid probabilities/confidence")
+        unavailable = record["status"] == "unavailable"
+        if (unavailable and any(numbers)) or (not unavailable and not math.isclose(sum(numbers[:3]), 1, abs_tol=1e-6)):
             raise ValueError("cache invalid probabilities/confidence")
         price = Decimal(str(record["anchor_price"]))
-        if not price.is_finite() or price <= 0 or record["status"] not in ("ok", "abstained"):
+        if not price.is_finite() or price <= 0 or record["status"] not in ("ok", "abstained", "unavailable"):
             raise ValueError("cache invalid anchor/status")
         generated = datetime.fromisoformat(record["generated_at"])
         if generated.tzinfo is None or generated.utcoffset() is None:
@@ -172,6 +175,8 @@ def augment_episodes(
                 or not math.isclose(float(record["anchor_price"]), float(episode.closes[anchor_rows[0]]), rel_tol=1e-12)
             ):
                 raise ValueError("cache as-of/target/past anchor mismatch")
+            if record["status"] == "unavailable":
+                continue
             allowed = (episode.ends >= record["replay_available_at"]) & (episode.ends <= target)
             allowed &= episode.available_at <= episode.ends
             block = extra[:, ordinal * 8 : (ordinal + 1) * 8]
@@ -443,19 +448,54 @@ def _improvement(
     return {"passed": all(checks.values()), "checks": checks, "intervals": intervals}
 
 
-def _forecast_metrics(probabilities: list[list[float]], labels: list[int], confidence: list[float]) -> dict[str, Any]:
-    if not labels:
-        raise ValueError("nonempty forecast grading targets required")
-    probs, actual = np.asarray(probabilities, dtype=float), np.asarray(labels, dtype=int)
+def _forecast_metrics(
+    probabilities: list[list[float]],
+    labels: list[int],
+    confidence: list[float],
+    available: list[bool] | None = None,
+) -> dict[str, Any]:
+    if not labels or len(probabilities) != len(labels) or len(confidence) != len(labels):
+        raise ValueError("nonempty matched forecast grading targets required")
+    valid = np.asarray(available if available is not None else [True] * len(labels), dtype=bool)
+    if valid.shape != (len(labels),):
+        raise ValueError("forecast availability cohort mismatch")
+    probs = np.asarray(probabilities, dtype=float)[valid]
+    actual = np.asarray(labels, dtype=int)[valid]
     chosen = probs.argmax(axis=1)
-    selected = np.minimum(probs.max(axis=1), np.asarray(confidence)) >= 0.6
+    selected = np.minimum(probs.max(axis=1), np.asarray(confidence)[valid]) >= 0.6
+    n_available = int(valid.sum())
+    correct = int(np.sum(chosen == actual))
+    accuracy = correct / n_available if n_available else None
     return {
         "records": len(labels),
-        "accuracy": float(np.mean(chosen == actual)),
-        "log_loss": float(-np.log(np.clip(probs[np.arange(len(actual)), actual], 1e-15, 1)).mean()),
-        "Brier": float(np.mean(np.sum((probs - np.eye(3)[actual]) ** 2, axis=1))),
-        "coverage_0_6": float(selected.mean()),
+        "cohort_records": len(labels),
+        "available_records": n_available,
+        "unavailable_records": len(labels) - n_available,
+        "error_rate": (len(labels) - n_available) / len(labels),
+        "accuracy": accuracy,
+        "accuracy_available": accuracy,
+        "accuracy_scope": "conditional_on_available_records",
+        "accuracy_errors_as_incorrect": correct / len(labels),
+        "log_loss": float(-np.log(np.clip(probs[np.arange(len(actual)), actual], 1e-15, 1)).mean())
+        if n_available
+        else None,
+        "Brier": float(np.mean(np.sum((probs - np.eye(3)[actual]) ** 2, axis=1))) if n_available else None,
+        "loss_scope": "available_records_only",
+        "coverage_0_6": int(selected.sum()) / len(labels),
+        "coverage_scope": "full_cohort",
         "selected_accuracy_0_6": float(np.mean(chosen[selected] == actual[selected])) if selected.any() else None,
+    }
+
+
+def _availability_summary(available: Sequence[bool]) -> dict[str, Any]:
+    if not available:
+        raise ValueError("nonempty forecast availability cohort required")
+    count = sum(available)
+    return {
+        "cohort_records": len(available),
+        "available_records": count,
+        "unavailable_records": len(available) - count,
+        "error_rate": (len(available) - count) / len(available),
     }
 
 
@@ -467,12 +507,13 @@ def grade_forecasts(
     report: dict[str, Any] = {
         "evidence_mode": "hypothetical_retrospective_teacher_forecasts",
         "vendor_pretraining_cutoff": "unknown",
+        "availability": _availability_summary([r["status"] != "unavailable" for r in cache["records"]]),
         "horizons": {},
     }
     for horizon in HORIZONS:
-        groups: dict[str, tuple[list[int], list[list[float]], list[float]]] = {}
+        groups: dict[str, tuple[list[int], list[list[float]], list[float], list[bool]]] = {}
         for role, episodes in (("train", train), ("tune", tune), ("test", test)):
-            labels, probabilities, confidence = [], [], []
+            labels, probabilities, confidence, available = [], [], [], []
             for episode in episodes:
                 record = records[(episode.symbol, episode.session_date.isoformat(), horizon)]
                 target = record["target_time"]
@@ -483,17 +524,27 @@ def grade_forecasts(
                 labels.append(0 if change < Decimal("-.001") else 2 if change > Decimal(".001") else 1)
                 probabilities.append([record["probabilities"][c] for c in CLASSES])
                 confidence.append(record["model_confidence"])
-            groups[role] = labels, probabilities, confidence
+                available.append(record["status"] != "unavailable")
+            groups[role] = labels, probabilities, confidence, available
         training_labels = groups["train"][0]
         if not training_labels:
             raise ValueError("TRAIN-only forecast prior labels absent")
         prior = (np.bincount(training_labels, minlength=3) / len(training_labels)).tolist()
-        grades: dict[str, Any] = {"train_prior": prior, "train_labels": len(training_labels)}
+        grades: dict[str, Any] = {
+            "train_prior": prior,
+            "train_labels": len(training_labels),
+            "train_availability": _availability_summary(groups["train"][3]),
+        }
         for role in ("tune", "test"):
-            labels, probabilities, confidence = groups[role]
+            labels, probabilities, confidence, available = groups[role]
+            prior_full = _forecast_metrics([prior] * len(labels), labels, [max(prior)] * len(labels))
             grades[role] = {
-                "jev": _forecast_metrics(probabilities, labels, confidence),
-                "prior": _forecast_metrics([prior] * len(labels), labels, [max(prior)] * len(labels)),
+                "jev": _forecast_metrics(probabilities, labels, confidence, available),
+                "prior": prior_full,
+                "prior_full_cohort": prior_full,
+                "prior_same_available": _forecast_metrics(
+                    [prior] * len(labels), labels, [max(prior)] * len(labels), available
+                ),
             }
         report["horizons"][horizon] = grades
     return report

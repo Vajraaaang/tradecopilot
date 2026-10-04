@@ -4,7 +4,7 @@ import asyncio
 from pathlib import Path
 
 from tradecopilot.auth import JevKeychainStorage
-from tradecopilot.forecast.jev_rl import _load_plan, collect_cache, prepare_requests
+from tradecopilot.forecast.jev_rl import _load_plan, collect_cache, continue_cache, prepare_requests
 
 
 def main() -> None:
@@ -16,6 +16,10 @@ def main() -> None:
     collect = commands.add_parser("collect", help="execute the sealed paid plan once")
     collect.add_argument("--plan", type=Path, required=True)
     collect.add_argument("--output-dir", type=Path, required=True)
+    continuation = commands.add_parser("continue", help="continue only unattempted batches under sealed amendment")
+    continuation.add_argument("--plan", type=Path, required=True)
+    continuation.add_argument("--output-dir", type=Path, required=True)
+    continuation.add_argument("--amendment", type=Path, required=True)
     args = parser.parse_args()
     paths = [value for value in vars(args).values() if isinstance(value, Path)]
     if not all(path.is_absolute() for path in paths):
@@ -28,7 +32,8 @@ def main() -> None:
         key = asyncio.run(JevKeychainStorage().get_api_key())
         if not key:
             parser.error("Jev Keychain credential is missing")
-        result = collect_cache(args.plan, args.output_dir, api_key=key)
+        result = (continue_cache(args.plan, args.output_dir, args.amendment, api_key=key)
+                  if args.command == "continue" else collect_cache(args.plan, args.output_dir, api_key=key))
     print(result)
 
 

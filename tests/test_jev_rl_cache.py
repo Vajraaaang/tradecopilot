@@ -262,3 +262,149 @@ def test_payload_edit_during_collection_cannot_change_frozen_later_request(tmp_p
     with pytest.raises(ValueError):  # Complete publication fails against the edited artifact inventory.
         module.collect_cache(plan, tmp_path / "cache", api_key="synthetic-key", ledger_path=tmp_path / "ledger")
     assert calls[1] == original_second
+
+
+def amendment(tmp_path, plan_path, attempted=2):
+    plan = json.loads(plan_path.read_text())
+    value = {"schema_version": "jev-rl-acquisition-amendment-v1", "registration_id": plan["registration_id"],
+             "plan_id": plan["plan_id"], "existing_attempted_batch_indices": list(range(attempted)),
+             "remaining_unattempted_batch_indices": list(range(attempted, len(plan["batches"]))),
+             "retry_provider_failures": False, "failure_policy": "preserve_unavailable_and_continue_unattempted",
+             "api_budget": plan["registration"]["api_budget"], "fixture": True}
+    value["amendment_id"] = content_hash(value)
+    path = tmp_path / "amendment.json"
+    path.write_text(json.dumps(value))
+    return path
+
+
+def interrupted(tmp_path, monkeypatch):
+    import tradecopilot.forecast.jev_rl as module
+    plan, _ = synthetic(tmp_path)
+    calls = []
+    def transport(payload, key):
+        calls.append(payload)
+        raw = reply(payload)
+        if len(calls) == 2:
+            raw["answers"] = {}
+        return raw
+    monkeypatch.setattr(module, "_post", transport)
+    times = iter(datetime(2026, 10, 4, tzinfo=UTC) + timedelta(seconds=i * 31) for i in range(100))
+    monkeypatch.setattr(module, "_now", lambda: next(times))
+    monkeypatch.setattr(module, "_wait_cooldown", lambda seconds: None)
+    out, ledger = tmp_path / "cache", tmp_path / "ledger"
+    with pytest.raises(ValueError, match="stopped"):
+        module.collect_cache(plan, out, api_key="synthetic-key", ledger_path=ledger)
+    return plan, out, ledger, calls
+
+
+def test_explicit_continuation_preserves_failed_forecasts_and_never_reposts(tmp_path, monkeypatch):
+    import tradecopilot.forecast.jev_rl as module
+    plan, out, ledger, calls = interrupted(tmp_path, monkeypatch)
+    prior = {p.name: p.read_bytes() for p in out.glob("response-*.json")}
+    original_partial = (out / "partial.json").read_bytes()
+    ap = amendment(tmp_path, plan)
+    def future_failure(payload, key):
+        calls.append(payload)
+        raise RuntimeError("private-provider-secret")
+    monkeypatch.setattr(module, "_post", future_failure)
+    path = module.continue_cache(plan, out, ap, api_key="synthetic-key", ledger_path=ledger)
+    cache = module.load_cache(path)
+    assert len(calls) == 3 and len(cache["records"]) == 45
+    assert cache["batch_counts"] == {"valid": 1, "unavailable": 2}
+    assert cache["usage"]["attempts"] == 3 and cache["usage"]["input_tokens"] == 123 * 2 + 64000
+    assert (out / "partial-before-continuation.json").read_bytes() == original_partial
+    for filename, blob in prior.items():
+        assert (out / filename).read_bytes() == blob
+    failed = cache["records"][15:]
+    assert all(r["status"] == "unavailable" and r["model_confidence"] == 0
+               and r["probabilities"] == {"DOWN": 0, "FLAT": 0, "UP": 0} for r in failed)
+    assert all(r["input_id"] and r["anchor_price"] and r["replay_available_at"] == r["as_of"] + 60 for r in failed)
+    assert all(datetime.fromisoformat(r["generated_at"]).year == 2026 for r in failed)
+    assert "private-provider-secret" not in path.read_text()
+    with pytest.raises(ValueError):
+        module.continue_cache(plan, out, ap, api_key="synthetic-key", ledger_path=ledger)
+    assert len(calls) == 3
+
+
+@pytest.mark.parametrize("corruption", ["response", "ledger", "amendment", "plan"])
+def test_continuation_rejects_wrong_evidence_before_new_provider_call(tmp_path, monkeypatch, corruption):
+    import sqlite3
+
+    import tradecopilot.forecast.jev_rl as module
+    plan, out, ledger, calls = interrupted(tmp_path, monkeypatch)
+    ap = amendment(tmp_path, plan)
+    if corruption == "response":
+        rp = out / "response-000.json"
+        value = json.loads(rp.read_text())
+        value["input_tokens"] += 1
+        rp.write_text(json.dumps(value))
+    elif corruption == "ledger":
+        with sqlite3.connect(ledger) as c:
+            c.execute("UPDATE jev_attempts SET request_json='{}' WHERE id=1")
+    elif corruption == "amendment":
+        value = json.loads(ap.read_text())
+        value["remaining_unattempted_batch_indices"] = [1, 2]
+        value["amendment_id"] = content_hash({k: v for k, v in value.items() if k != "amendment_id"})
+        ap.write_text(json.dumps(value))
+    else:
+        value = json.loads(plan.read_text())
+        value["model"] = "jev-latest"
+        plan.write_text(json.dumps(value))
+    with pytest.raises(ValueError):
+        module.continue_cache(plan, out, ap, api_key="synthetic-key", ledger_path=ledger)
+    assert len(calls) == 2
+
+
+def test_continuation_global_cap_and_lock_prevent_new_calls(tmp_path, monkeypatch):
+    import fcntl
+    import sqlite3
+
+    import tradecopilot.forecast.jev_rl as module
+    plan, out, ledger, calls = interrupted(tmp_path, monkeypatch)
+    ap = amendment(tmp_path, plan)
+    lock = (out / ".continuation.lock").open("a+b")
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        with pytest.raises(ValueError, match="active"):
+            module.continue_cache(plan, out, ap, api_key="synthetic-key", ledger_path=ledger)
+    finally:
+        lock.close()
+    with sqlite3.connect(ledger) as c:
+        for i in range(98):
+            c.execute("INSERT INTO jev_attempts(requested_at,fingerprint,request_json) VALUES(0,?, '{}')", (str(i),))
+    with pytest.raises(ValueError, match="budget"):
+        module.continue_cache(plan, out, ap, api_key="synthetic-key", ledger_path=ledger)
+    assert len(calls) == 2 and not (out / "cache.json").exists()
+
+
+def test_continued_cache_rechecks_ledger_read_only_and_unavailable_seal(tmp_path, monkeypatch):
+    import sqlite3
+
+    import tradecopilot.forecast.jev_rl as module
+    plan, out, ledger, calls = interrupted(tmp_path, monkeypatch)
+    ap = amendment(tmp_path, plan)
+    path = module.continue_cache(plan, out, ap, api_key="synthetic-key", ledger_path=ledger)
+    assert len(calls) == 3
+    # Loading must never initialize clients or migrate/mutate the ledger.
+    monkeypatch.setattr(module, "_BatchLedger", lambda *args, **kwargs: pytest.fail("loader constructed client"))
+    before = ledger.read_bytes()
+    assert module.load_cache(path)["batch_counts"] == {"valid": 2, "unavailable": 1}
+    assert ledger.read_bytes() == before
+    with sqlite3.connect(ledger) as c:
+        c.execute("UPDATE jev_attempts SET input_tokens=input_tokens+1 WHERE id=2")
+    with pytest.raises(ValueError):
+        module.load_cache(path)
+    assert len(calls) == 3
+
+
+def test_unknown_reserved_without_response_is_never_retried(tmp_path, monkeypatch):
+    import sqlite3
+
+    import tradecopilot.forecast.jev_rl as module
+    plan, out, ledger, calls = interrupted(tmp_path, monkeypatch)
+    ap = amendment(tmp_path, plan)
+    with sqlite3.connect(ledger) as c:
+        c.execute("UPDATE jev_attempts SET result_json=NULL WHERE id=2")
+    with pytest.raises(ValueError):
+        module.continue_cache(plan, out, ap, api_key="synthetic-key", ledger_path=ledger)
+    assert len(calls) == 2

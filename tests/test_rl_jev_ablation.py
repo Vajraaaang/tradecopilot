@@ -579,3 +579,131 @@ def test_elapsed_deadline_or_invalid_evidence_blocks_tune(tmp_path, runner, monk
     assert all(
         (tmp_path / "deadline" / f"{r['profile']}-{r['seed']}" / "model.zip").exists() for r in report["training"]
     )
+
+
+def unavailable_cache(cache, horizons=ab.HORIZONS):
+    changed = copy.deepcopy(cache)
+    changed.pop("cache_id")
+    for record in changed["records"]:
+        if record["horizon_key"] in horizons:
+            record["status"] = "unavailable"
+            record["probabilities"] = dict.fromkeys(ab.CLASSES, 0.0)
+            record["model_confidence"] = 0.0
+    return sealed(changed, "cache_id")
+
+
+def test_unavailable_forecasts_mask_all_fields_in_both_profiles_without_dropping_episode(inputs):
+    ep, manifest, reg, cache = inputs
+    cache = unavailable_cache(cache, ("15m",))
+    profiles = [ab.augment_episodes([ep], cache, p, manifest, reg) for p in ab.PROFILES]
+    for episodes in profiles:
+        assert len(episodes) == 1
+        augmented = episodes[0]
+        assert augmented.symbol == ep.symbol and augmented.session_date == ep.session_date
+        assert augmented.features.shape == (390, 139)
+        assert not augmented.features[:, 115:123].any()
+        assert augmented.features[61, 138] == 1
+        np.testing.assert_array_equal(augmented.features[:, :115], ep.features)
+    np.testing.assert_array_equal(profiles[0][0].features[:, 115:123], profiles[1][0].features[:, 115:123])
+
+
+@pytest.mark.parametrize("field", ["probabilities", "model_confidence"])
+def test_unavailable_sentinel_requires_exact_zero_values(inputs, field):
+    ep, manifest, reg, cache = inputs
+    changed = unavailable_cache(cache)
+    changed.pop("cache_id")
+    if field == "probabilities":
+        changed["records"][0][field] = {"DOWN": 1e-9, "FLAT": 0.0, "UP": 0.0}
+    else:
+        changed["records"][0][field] = 1e-9
+    with pytest.raises(ValueError, match=r"probabilities|sentinel"):
+        ab.augment_episodes([ep], sealed(changed, "cache_id"), "JEV_ASSISTED", manifest, reg)
+
+
+def test_forecast_failure_denominators_and_valid_selection():
+    metrics = ab._forecast_metrics([[0.1, 0.8, 0.1], [0.0, 0.0, 0.0]], [1, 1], [0.9, 0.0], [True, False])
+    assert metrics["records"] == metrics["cohort_records"] == 2
+    assert metrics["available_records"] == 1 and metrics["unavailable_records"] == 1
+    assert metrics["error_rate"] == 0.5
+    assert metrics["accuracy_available"] == metrics["accuracy"] == 1
+    assert metrics["accuracy_errors_as_incorrect"] == 0.5
+    assert metrics["coverage_0_6"] == 0.5
+    assert metrics["selected_accuracy_0_6"] == 1
+    assert metrics["loss_scope"] == "available_records_only"
+    assert metrics["log_loss"] == pytest.approx(-np.log(0.8))
+    assert metrics["Brier"] == pytest.approx(0.06)
+
+
+def test_all_unavailable_forecast_metrics_keep_full_cohort():
+    metrics = ab._forecast_metrics([[0.0, 0.0, 0.0]], [1], [0.0], [False])
+    assert metrics["available_records"] == 0 and metrics["unavailable_records"] == 1
+    assert metrics["error_rate"] == 1
+    assert metrics["accuracy_available"] is None
+    assert metrics["accuracy_errors_as_incorrect"] == 0
+    assert metrics["log_loss"] is None and metrics["Brier"] is None
+    assert metrics["coverage_0_6"] == 0
+
+
+def test_prior_uses_all_train_labels_when_teacher_unavailable(inputs):
+    ep, _, _, cache = inputs
+    report = ab.grade_forecasts([ep], [ep], [ep], unavailable_cache(cache))
+    for horizon in report["horizons"].values():
+        assert horizon["train_prior"] == [0.0, 1.0, 0.0]
+        assert horizon["train_labels"] == 1
+        assert horizon["test"]["jev"]["cohort_records"] == 1
+        assert horizon["test"]["jev"]["unavailable_records"] == 1
+        assert horizon["test"]["prior_full_cohort"]["accuracy"] == 1
+        assert horizon["test"]["prior_same_available"]["accuracy_available"] is None
+
+
+def test_failed_teacher_cases_preserve_policy_cohort_and_checkpoint_selection(tmp_path, runner, monkeypatch):
+    reg, cache, budget, events, worker, _ = runner
+    before = ab.load_report(ab.run_ablation(tmp_path, cache, reg, budget, tmp_path / "valid-teacher"))
+    original = json.loads(cache.read_text())
+    updated = unavailable_cache(original)
+    cache.write_text(json.dumps(updated))
+    allocation = json.loads(budget.read_text())
+    allocation.pop("budget_id")
+    allocation["cache_id"] = updated["cache_id"]
+    revised_budget = write_sealed(budget, allocation, "budget_id")
+
+    def revised_worker(*args):
+        result = worker(*args)
+        result.pop("training_id")
+        result["cache_id"] = updated["cache_id"]
+        result["budget_id"] = revised_budget["budget_id"]
+        return write_sealed(args[6] / "result.json", result, "training_id")
+
+    monkeypatch.setattr(ab, "_run_worker", revised_worker)
+    events.clear()
+    after = ab.load_report(ab.run_ablation(tmp_path, cache, reg, budget, tmp_path / "failed-teacher"))
+    assert {p: r["seed"] for p, r in before["selection"]["profiles"].items()} == {
+        p: r["seed"] for p, r in after["selection"]["profiles"].items()
+    }
+    assert len(after["training"]) == 6
+    assert all(set(after["test_seeds"][p]) == {"42", "43", "44"} for p in ab.PROFILES)
+    assert events.count("worker") == 6
+    assert after["test_mean_seed"] == before["test_mean_seed"]
+
+
+def test_training_teacher_failures_are_visible_even_when_tune_test_are_available(inputs):
+    from dataclasses import replace
+    from datetime import timedelta
+
+    ep, _, _, cache = inputs
+    train_cache = unavailable_cache(cache)
+    tune = replace(ep, session_date=ep.session_date + timedelta(days=1), episode_id="")
+    test = replace(ep, session_date=ep.session_date + timedelta(days=2), episode_id="")
+    for later in (tune, test):
+        for record in cache["records"]:
+            later_record = {**record, "session_date": later.session_date.isoformat()}
+            train_cache["records"].append(later_record)
+    report = ab.grade_forecasts([ep], [tune], [test], train_cache)
+    assert report["availability"]["cohort_records"] == 9
+    assert report["availability"]["unavailable_records"] == 3
+    assert report["availability"]["error_rate"] == pytest.approx(1 / 3)
+    for horizon in report["horizons"].values():
+        assert horizon["train_availability"]["unavailable_records"] == 1
+        assert horizon["tune"]["jev"]["unavailable_records"] == 0
+        assert horizon["test"]["jev"]["unavailable_records"] == 0
+        assert horizon["train_prior"] == [0.0, 1.0, 0.0]

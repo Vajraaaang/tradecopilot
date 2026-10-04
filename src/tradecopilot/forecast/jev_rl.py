@@ -5,10 +5,12 @@ through the shared global ledger; partial failures never become a complete cache
 """
 from __future__ import annotations
 
+import fcntl
 import hashlib
 import json
 import math
 import os
+import sqlite3
 import time
 from collections import defaultdict
 from contextlib import closing
@@ -22,7 +24,7 @@ from tradecopilot.forecast.bars import HistoricalBar, load_bar_dataset
 from tradecopilot.forecast.contracts import LABELS, content_hash
 from tradecopilot.forecast.jev import JevForecaster
 from tradecopilot.forecast.sessions import session_bounds
-from tradecopilot.jev import INPUT_TOKEN_PRICE_USD, MAX_INPUT_TOKENS, MAX_REQUEST_BYTES, _post
+from tradecopilot.jev import INPUT_TOKEN_PRICE_USD, MAX_INPUT_TOKENS, MAX_REQUEST_BYTES, _post, default_ledger_path
 from tradecopilot.rl.data import _dates, _source_check, load_prepared
 
 MODEL = "jev-1.13.0"
@@ -358,13 +360,16 @@ class _BatchLedger(JevForecaster):
 def _records(batch: dict[str, Any], response: dict[str, Any]) -> list[dict[str, Any]]:
     result = []
     for item in batch["inputs"]:
-        answer = response["answers"][item["question_key"]]
+        unavailable = response["answers"] is None
+        answer: dict[str, Any] = ({"probabilities": {label: 0.0 for label in LABELS}, "confidence": 0.0}
+                  if unavailable else response["answers"][item["question_key"]])
         record = {k: item[k] for k in ("symbol", "session_date", "as_of", "target_time", "horizon_key",
                                        "anchor_price", "replay_available_at", "input_id")}
         record.update(generated_at=response["completed_at"], probabilities=answer["probabilities"],
                       model_confidence=float(answer["confidence"]),
-                      status="ok" if min(max(answer["probabilities"].values()), answer["confidence"]) >= 0.6
-                      else "abstained", request_id=response["request_id"], payload_id=batch["payload_id"])
+                      status="unavailable" if unavailable else
+                      "ok" if min(max(answer["probabilities"].values()), answer["confidence"]) >= 0.6 else "abstained",
+                      request_id=response["request_id"], payload_id=batch["payload_id"])
         result.append(record)
     return result
 
@@ -453,26 +458,242 @@ def collect_cache(plan_path: Path, output_dir: Path, *, api_key: str, ledger_pat
     return path
 
 
+def _response(response: dict[str, Any], batch: dict[str, Any], *, allow_failure: bool) -> None:
+    if set(response) != {"model", "request_id", "payload_id", "requested_at", "completed_at",
+                         "input_tokens", "status", "answers"}:
+        raise ValueError("invalid private response fields")
+    tokens = response["input_tokens"]
+    if (response["model"] != MODEL or response["payload_id"] != batch["payload_id"]
+            or not isinstance(tokens, int) or isinstance(tokens, bool) or tokens < 0
+            or not isinstance(response["request_id"], str) or not response["request_id"].isdigit()):
+        raise ValueError("invalid private response")
+    requested, completed = (datetime.fromisoformat(response[k]) for k in ("requested_at", "completed_at"))
+    if requested.utcoffset() != timedelta(0) or completed.utcoffset() != timedelta(0) or completed < requested:
+        raise ValueError("invalid actual generation time")
+    if response["status"] == "validated":
+        if tokens > MAX_INPUT_TOKENS:
+            raise ValueError("invalid validated usage")
+        _validate_answers(response, {r["question_key"] for r in batch["inputs"]})
+    elif (not allow_failure or response["status"] not in {"invalid_response", "provider_unavailable"}
+          or response["answers"] is not None):
+        raise ValueError("invalid failed response")
+
+
+def _amendment(path: Path, plan: dict[str, Any]) -> dict[str, Any]:
+    _safe_path(path.absolute(), Path(plan["bundle_root"]))
+    amendment = _read(path)
+    _seal(amendment, "amendment_id")
+    attempted = amendment["existing_attempted_batch_indices"]
+    remaining = amendment["remaining_unattempted_batch_indices"]
+    total = len(plan["batches"])
+    if (amendment["schema_version"] != "jev-rl-acquisition-amendment-v1"
+            or amendment["registration_id"] != plan["registration_id"] or amendment["plan_id"] != plan["plan_id"]
+            or amendment["retry_provider_failures"] is not False
+            or amendment["failure_policy"] != "preserve_unavailable_and_continue_unattempted"
+            or amendment["api_budget"] != _BUDGET or not isinstance(attempted, list) or not attempted
+            or any(not isinstance(i, int) or isinstance(i, bool) for i in attempted)
+            or attempted != list(range(len(attempted)))
+            or remaining != list(range(len(attempted), total))):
+        raise ValueError("invalid acquisition amendment")
+    return amendment
+
+
+def _existing_responses(plan: dict[str, Any], output_dir: Path, ledger_path: Path
+                        ) -> list[dict[str, Any]]:
+    """Reconcile saved evidence exactly against durable, previously reserved provider attempts."""
+    if not plan["registration"].get("fixture") and ledger_path.resolve() != default_ledger_path():
+        raise ValueError("continued acquisition requires the existing shared default ledger")
+    if not ledger_path.exists():
+        raise ValueError("durable acquisition ledger missing")
+    with closing(sqlite3.connect(f"{ledger_path.resolve().as_uri()}?mode=ro", uri=True)) as c:
+        experiment = c.execute("SELECT plan_id,max_attempts,max_cost_usd FROM jev_rl_experiments "
+                               "WHERE experiment_id=?", (plan["registration_id"],)).fetchone()
+        if experiment != (plan["plan_id"], 80, 0.25):
+            raise ValueError("durable experiment mismatch")
+        rows = c.execute("SELECT b.batch_index,a.id,a.requested_at,a.fingerprint,a.request_json,"
+                         "a.forecast_run_id,a.input_tokens,a.result_json FROM jev_rl_batches b "
+                         "JOIN jev_attempts a ON b.attempt_id=a.id WHERE b.experiment_id=? ORDER BY b.batch_index",
+                         (plan["registration_id"],)).fetchall()
+        if [row[0] for row in rows] != list(range(len(rows))) or len(rows) > len(plan["batches"]):
+            raise ValueError("durable attempted batch coverage mismatch")
+        for group in range(8):
+            limits = c.execute("SELECT max_requests,max_cost_usd FROM forecast_run_limits WHERE run_id=?",
+                               (f"jev-rl:{plan['registration_id']}:{group}",)).fetchone()
+            if limits != (10, 0.05):
+                raise ValueError("durable immutable run limits mismatch")
+    responses = []
+    for index, attempt, reserved, fingerprint, request, run_id, tokens, result in rows:
+        batch = plan["batches"][index]
+        response_path = output_dir / f"response-{index:03d}.json"
+        _safe_path(response_path.absolute(), Path(plan["bundle_root"]))
+        response = _read(response_path)
+        _response(response, batch, allow_failure=True)
+        # Payload IDs hash canonical JSON and ledger requests must themselves reproduce that payload.
+        try:
+            request_payload = json.loads(request)
+        except (ValueError, TypeError) as error:
+            raise ValueError("invalid durable request") from error
+        if (str(attempt) != response["request_id"] or tokens != response["input_tokens"]
+                or result is None or json.loads(result) != response or run_id != batch["run_id"]
+                or fingerprint != content_hash({"plan_id": plan["plan_id"], "batch": index})
+                or content_hash(request_payload) != batch["payload_id"] or request != _encoded(request_payload).decode()
+                or reserved > datetime.fromisoformat(response["requested_at"]).timestamp()):
+            raise ValueError("saved response differs from durable attempt")
+        responses.append(response)
+    expected_paths = {f"response-{i:03d}.json" for i in range(len(rows))}
+    if {p.name for p in output_dir.glob("response-*.json")} != expected_paths:
+        raise ValueError("saved response and durable attempt coverage mismatch")
+    return responses
+
+
+def _attempt_batch(ledger: _BatchLedger, batch: dict[str, Any], payload: dict[str, Any], api_key: str
+                   ) -> dict[str, Any]:
+    while True:
+        attempt, reason, delay = ledger.reserve(batch["batch_index"], _encoded(payload).decode(), _now())
+        if reason != "cooldown":
+            break
+        _wait_cooldown(delay)
+    if reason is not None:
+        raise ValueError("Jev continuation stopped by durable budget or duplicate guard")
+    assert attempt is not None
+    requested = _now().isoformat()
+    tokens = MAX_INPUT_TOKENS
+    answers = None
+    status = "provider_unavailable"
+    try:
+        raw = _post(payload, api_key)
+        reported = _reported_tokens(raw)
+        tokens = MAX_INPUT_TOKENS if reported is None else reported
+        status = "invalid_response"
+        if reported is None or reported > MAX_INPUT_TOKENS:
+            raise ValueError("invalid usage")
+        answers = _validate_answers(raw, set(payload["questions"]))
+    except Exception:
+        pass  # Never retain arbitrary provider text or exception messages.
+    response = {"model": MODEL, "request_id": str(attempt), "payload_id": batch["payload_id"],
+                "requested_at": requested, "completed_at": _now().isoformat(), "input_tokens": tokens,
+                "status": "validated" if answers is not None else status, "answers": answers}
+    ledger.settle(attempt, tokens, response)
+    return response
+
+
+def _continued_partial(plan: dict[str, Any], output_dir: Path, responses: list[dict[str, Any]]) -> dict[str, Any]:
+    tokens = sum(response["input_tokens"] for response in responses)
+    value = {"schema_version": "jev-rl-partial-v1", "plan_id": plan["plan_id"], "attempts": len(responses),
+             "input_tokens": tokens, "conservative_estimated_cost_usd": tokens * INPUT_TOKEN_PRICE_USD,
+             "records": [record for batch, response in zip(plan["batches"], responses, strict=False)
+                         for record in _records(batch, response)],
+             "responses": [_artifact(output_dir / f"response-{i:03d}.json") for i in range(len(responses))],
+             "status": responses[-1]["status"]}
+    temporary = output_dir / ".partial.tmp"
+    _write(temporary, value)
+    os.replace(temporary, output_dir / "partial.json")
+    return value
+
+
+def continue_cache(plan_path: Path, existing_output_dir: Path, amendment_path: Path, *, api_key: str,
+                   ledger_path: Path | None = None) -> Path:
+    """Explicitly continue only unattempted batches; failed cases remain unavailable, never retried."""
+    plan = _load_plan(plan_path)
+    amendment = _amendment(amendment_path, plan)
+    output_dir = _safe_path(existing_output_dir.absolute(), Path(plan["bundle_root"]))
+    if not output_dir.is_dir() or (output_dir / "cache.json").exists():
+        raise ValueError("continuation requires existing incomplete collection")
+    lock_path = _safe_path(output_dir / ".continuation.lock", Path(plan["bundle_root"]))
+    with lock_path.open("a+b") as lock:
+        lock_path.chmod(0o600)
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError as error:
+            raise ValueError("another continuation is active") from error
+        try:
+            return _continue_locked(plan_path, plan, output_dir, amendment_path, amendment, api_key,
+                                    (ledger_path or default_ledger_path()).resolve())
+        finally:
+            fcntl.flock(lock, fcntl.LOCK_UN)
+
+
+def _continue_locked(plan_path: Path, plan: dict[str, Any], output_dir: Path, amendment_path: Path,
+                     amendment: dict[str, Any], api_key: str, ledger_path: Path) -> Path:
+    if (output_dir / "cache.json").exists():
+        raise ValueError("collection already sealed")
+    responses = _existing_responses(plan, output_dir, ledger_path)
+    if any(response["input_tokens"] > MAX_INPUT_TOKENS for response in responses):
+        raise ValueError("provider usage exceeds reservation; further calls stopped")
+    initially_attempted = len(amendment["existing_attempted_batch_indices"])
+    if len(responses) < initially_attempted:
+        raise ValueError("amendment original attempted coverage mismatch")
+    payloads = [_read(plan_path.parent / batch["payload_path"]) for batch in plan["batches"]]
+    if any(content_hash(payload) != batch["payload_id"]
+           for batch, payload in zip(plan["batches"], payloads, strict=True)):
+        raise ValueError("payload changed after plan validation")
+    # Preserve the exact original partial, including its honest incomplete coverage.
+    original = output_dir / "partial-before-continuation.json"
+    if not original.exists():
+        blob = (output_dir / "partial.json").read_bytes()
+        with original.open("xb") as stream:
+            stream.write(blob)
+        original.chmod(0o600)
+    else:
+        _safe_path(original, Path(plan["bundle_root"]))
+    ledger = _BatchLedger(api_key, ledger_path, plan["registration_id"], plan["plan_id"])
+    _continued_partial(plan, output_dir, responses)
+    for batch, payload in zip(plan["batches"][len(responses):], payloads[len(responses):], strict=True):
+        response = _attempt_batch(ledger, batch, payload, api_key)
+        _write(output_dir / f"response-{batch['batch_index']:03d}.json", response)
+        responses.append(response)
+        _continued_partial(plan, output_dir, responses)
+        if response["input_tokens"] > MAX_INPUT_TOKENS:
+            raise ValueError("continuation stopped: provider usage exceeds reservation")
+    records = [record for batch, response in zip(plan["batches"], responses, strict=True)
+               for record in _records(batch, response)]
+    tokens = sum(response["input_tokens"] for response in responses)
+    counts = {"valid": sum(r["status"] == "validated" for r in responses),
+              "unavailable": sum(r["status"] != "validated" for r in responses)}
+    cache = {"schema_version": "jev-rl-cache-v1", "registration_id": plan["registration_id"],
+             "source_data_id": plan["source_data_id"], "base_prepared_data_id": plan["base_prepared_data_id"],
+             "model": MODEL, "prompt_version": PROMPT_VERSION, "availability_mode": AVAILABILITY_MODE,
+             "records": records, "usage": {"attempts": len(responses), "input_tokens": tokens,
+             "conservative_estimated_cost_usd": tokens * INPUT_TOKEN_PRICE_USD},
+             "plan_path": str(plan_path.resolve()), "amendment_path": str(amendment_path.resolve()),
+             "acquisition_amendment": amendment, "amendment_id": amendment["amendment_id"],
+             "ledger_path": str(ledger_path), "batch_counts": counts,
+             "inventory": [*plan["inventory"], _artifact(plan_path), _artifact(amendment_path), _artifact(original),
+                           *[_artifact(output_dir / f"response-{i:03d}.json") for i in range(len(responses))],
+                           _artifact(output_dir / "partial.json")]}
+    cache["cache_id"] = content_hash(cache)
+    temporary = output_dir / ".cache.tmp"
+    if temporary.exists():
+        raise ValueError("existing unpublished cache requires review")
+    _write(temporary, cache)
+    load_cache(temporary)
+    path = output_dir / "cache.json"
+    os.replace(temporary, path)
+    return path
+
+
 def load_cache(path: Path) -> dict[str, Any]:
-    """Fail closed on any cache, payload, source, registration, prepared, or response corruption."""
+    """Verify original artifacts, every response, and amended acquisition's durable ledger evidence."""
     try:
         cache = _read(path)
         _seal(cache, "cache_id")
         plan = _load_plan(Path(cache["plan_path"]))
         _safe_path(path.absolute(), Path(plan["bundle_root"]))
         _inventory(cache["inventory"], Path(plan["bundle_root"]))
+        amended = "acquisition_amendment" in cache
+        amendment = _amendment(Path(cache["amendment_path"]), plan) if amended else None
+        if amended:
+            assert amendment is not None
+            if (cache["acquisition_amendment"] != amendment or cache["amendment_id"] != amendment["amendment_id"]):
+                raise ValueError("acquisition amendment snapshot mismatch")
+        responses = (_existing_responses(plan, path.parent, Path(cache["ledger_path"])) if amended
+                     else [_read(path.parent / f"response-{b['batch_index']:03d}.json") for b in plan["batches"]])
+        if len(responses) != len(plan["batches"]):
+            raise ValueError("incomplete response coverage")
         expected_records = []
         tokens = 0
-        for batch in plan["batches"]:
-            response = _read(path.parent / f"response-{batch['batch_index']:03d}.json")
-            _validate_answers(response, {r["question_key"] for r in batch["inputs"]})
-            if (response["status"] != "validated" or response["payload_id"] != batch["payload_id"]
-                    or not isinstance(response["input_tokens"], int) or isinstance(response["input_tokens"], bool)
-                    or not 0 <= response["input_tokens"] <= 64000):
-                raise ValueError("invalid private response")
-            requested, completed = (datetime.fromisoformat(response[k]) for k in ("requested_at", "completed_at"))
-            if requested.utcoffset() != timedelta(0) or completed.utcoffset() != timedelta(0) or completed < requested:
-                raise ValueError("invalid actual generation time")
+        for batch, response in zip(plan["batches"], responses, strict=True):
+            _response(response, batch, allow_failure=amended)
             tokens += response["input_tokens"]
             expected_records.extend(_records(batch, response))
         expected_usage = {"attempts": len(plan["batches"]), "input_tokens": tokens,
@@ -486,8 +707,15 @@ def load_cache(path: Path) -> dict[str, Any]:
         required_paths.update(str((path.parent / f"response-{b['batch_index']:03d}.json").resolve())
                               for b in plan["batches"])
         required_paths.add(str((path.parent / "partial.json").resolve()))
+        if amended:
+            counts = {"valid": sum(r["status"] == "validated" for r in responses),
+                      "unavailable": sum(r["status"] != "validated" for r in responses)}
+            if cache["batch_counts"] != counts:
+                raise ValueError("invalid acquisition batch counts")
+            required_paths.update({str(Path(cache["amendment_path"]).resolve()),
+                                   str((path.parent / "partial-before-continuation.json").resolve())})
         if {item["path"] for item in cache["inventory"]} != required_paths:
             raise ValueError("incomplete private artifact inventory")
         return cache
-    except (OSError, ValueError, KeyError, TypeError) as error:
+    except (OSError, ValueError, KeyError, TypeError, sqlite3.Error) as error:
         raise ValueError("invalid Jev cache or private artifact") from error
