@@ -67,8 +67,12 @@ identities so the later labels cannot rewrite what was known at inference time.
 The next [selective-accuracy experiment](docs/selective-accuracy.md) adds free
 Alpaca historical-data import, chronological CPU tuning, independent calibration
 and a held-out final test. The 80% selective target includes minimum coverage and
-separate UP/DOWN precision requirements. Expanded real-data execution is pending
-credentials; no new accuracy gain or production promotion is claimed.
+separate UP/DOWN precision requirements. The real 103-session run selected OHLCV
+logistic C=0.01: 46.51% final-test accuracy versus 46.18% for the price-only control
+on 18,500 cases. No gate met the 80% target; the research policy abstains.
+No Jev gain or production promotion is claimed.
+
+![Selective retrospective final-test results](docs/results/2026-10-03-selective-retrospective/comparison.png)
 
 The subsequent [OHLCV development milestone](docs/ohlcv-development.md) preserves
 all bar fields, adds 55 causal features and a histogram-boosting comparator, and
