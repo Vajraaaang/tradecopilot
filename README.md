@@ -74,8 +74,18 @@ runs selected recurrent PPO on February, but its frozen March checkpoint lost
 1.14 bps/day after costs versus zero for cash; no policy was promoted.
 ![Neural architecture tuning comparison](docs/results/2026-10-03-neural-capacity/tune-architectures.png)
 
-Jev forecast caches and prospective policy confirmation remain later work; RL
-policy returns do not establish forecast accuracy.
+The subsequent [paid Jev-assisted comparison](docs/jev-rl-evaluation.md) used 80
+unique requests for an estimated $0.02468, then trained six matched recurrent
+policies. Jev scored 24% on the 50-case 15-minute test versus 36% for the class
+prior, including unavailable forecasts as incorrect. The Jev-assisted three-seed
+policy mean was -3.42 bps/day versus -3.49 for the neutral control; the tiny
+increment was inconclusive and no policy was promoted. These are hypothetical
+retrospective results, with unknown vendor pretraining overlap.
+
+![Jev forecast accuracy with explicit error denominators](docs/results/2026-10-04-jev-rl-ablation/forecast-accuracy-coverage.png)
+
+Prospective confirmation remains later work. RL policy returns and forecast
+accuracy are evaluated separately.
 
 The [selective-accuracy experiment](docs/selective-accuracy.md) adds free
 Alpaca historical-data import, chronological CPU tuning, independent calibration

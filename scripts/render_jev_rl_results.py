@@ -466,7 +466,7 @@ def render(report_path: Path, output: Path, cache_path: Path) -> Path:
         ax.set_ylabel("Mean daily net policy return (bps)")
         ax.axhline(0, color="grey", lw=0.8)
         ax.set_title("TUNE policy returns: all three paired seeds\nBlack marks: three-seed means")
-        ax.legend()
+        ax.legend(loc="lower left")
         finish(fig, "tune-paired-seeds.png", "policy returns")
 
         fig, (ax, ci) = plt.subplots(1, 2, figsize=(12, 5.4), gridspec_kw={"width_ratios": [1.2, 1]})
