@@ -64,6 +64,12 @@ identities so the later labels cannot rewrite what was known at inference time.
 
 ## Real historical results
 
+The reviewed [RL architecture and staged plan](docs/rl-architecture.md) separates
+Jev forecast experiments from offline trading-policy learning. It specifies
+causal delayed execution, exact accounting, out-of-fold forecast caches and a
+feedforward/recurrent capacity comparison. The plan is proposed; no RL results
+are implied by the completed CPU forecasting study below.
+
 The next [selective-accuracy experiment](docs/selective-accuracy.md) adds free
 Alpaca historical-data import, chronological CPU tuning, independent calibration
 and a held-out final test. The 80% selective target includes minimum coverage and
