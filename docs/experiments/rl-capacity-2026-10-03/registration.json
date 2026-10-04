@@ -1,0 +1,147 @@
+{
+  "schema_version": "rl-capacity-registration-v1",
+  "created_at": "2026-10-04T05:07:53.135222+00:00",
+  "evidence_mode": "retrospective_chronological",
+  "source_range": {
+    "start": "2025-11-03",
+    "end_exclusive": "2026-03-31",
+    "provider": "Alpaca",
+    "feed": "sip",
+    "adjustment": "raw"
+  },
+  "symbols": [
+    "AAPL",
+    "AMZN",
+    "MSFT",
+    "NFLX",
+    "TSLA"
+  ],
+  "splits": {
+    "train": [
+      "2025-11-04",
+      "2026-01-30"
+    ],
+    "tune": [
+      "2026-02-02",
+      "2026-02-27"
+    ],
+    "test": [
+      "2026-03-02",
+      "2026-03-30"
+    ]
+  },
+  "forecast_profile": "MARKET_ONLY",
+  "candidates": [
+    {
+      "key": "ppo-64",
+      "algorithm": "PPO",
+      "pi": [
+        64,
+        64
+      ],
+      "vf": [
+        64,
+        64
+      ]
+    },
+    {
+      "key": "ppo-256",
+      "algorithm": "PPO",
+      "pi": [
+        256,
+        256
+      ],
+      "vf": [
+        256,
+        256
+      ]
+    },
+    {
+      "key": "recurrent-256",
+      "algorithm": "RecurrentPPO",
+      "lstm_hidden_size": 256,
+      "n_lstm_layers": 1,
+      "shared_lstm": false,
+      "enable_critic_lstm": true,
+      "pi": [
+        256,
+        128
+      ],
+      "vf": [
+        256,
+        128
+      ]
+    }
+  ],
+  "seeds": [
+    42,
+    43,
+    44
+  ],
+  "budget": {
+    "maximum_steps_per_seed": 100000,
+    "minimum_steps_per_seed": 10240,
+    "maximum_seconds_per_seed": 600,
+    "rollout_quantum": 128,
+    "shared_budget_rule": "min(100000, floor(0.8*600*slowest_training_steps_per_second/128)*128), require >=10240",
+    "device_selection": "throughput/operator parity benchmark before performance scores",
+    "workers": 1
+  },
+  "optimizer": {
+    "n_steps": 128,
+    "batch_size": 128,
+    "n_epochs": 10,
+    "learning_rate": 0.0003,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "clip_range": 0.2
+  },
+  "selection": {
+    "architecture": "highest mean tuning date-level net return over all three seeds; all episodes valid/resolved",
+    "checkpoint": "highest tuning net return seed within selected architecture, tie lowest seed",
+    "test_release": "only after hashed selection frozen",
+    "test_models": "selected architecture all seeds plus identical controls",
+    "improvement_requires": "all scored episodes valid/resolved; positive net return and positive paired date bootstrap lower bound vs cash and strongest predeclared control; drawdown within registered limit; positive incremental return at doubled costs"
+  },
+  "environment": {
+    "initial_cash": "10000",
+    "notional_cap": "1000",
+    "loss_lock": "100",
+    "base_cost_bps_per_side": 2,
+    "cost_stress_bps_per_side": [
+      4,
+      8
+    ],
+    "fee_per_fill": "0",
+    "quantity_quantum": "0.000001",
+    "capacity_fraction": "0.01",
+    "warmup_minutes": 60,
+    "latency_minutes": 1,
+    "forced_close_buffer_minutes": 5,
+    "actions": [
+      0,
+      0.5,
+      1
+    ],
+    "repeat_nonzero_target": "HOLD",
+    "flat": "sell held shares, repeat residual until flat or unresolved",
+    "reward": "10000*net_equity_change/initial_equity",
+    "network_in_rollout": false
+  },
+  "controls": [
+    "cash",
+    "capped-intraday-hold",
+    "fixed-5m-momentum-rule"
+  ],
+  "rule": {
+    "enter_when_return_5m_bps_above": 5,
+    "otherwise": "flat"
+  },
+  "constraints": {
+    "new_jev_calls": 0,
+    "broker_orders": 0,
+    "test_policy": "March outcomes not scored or used for fitting/selection before final release",
+    "interpretation": "best among tested policy architectures; no Jev weight training or 80% forecast claim"
+  },
+  "registration_id": "5bb6992bed6be525687269c4e0b12c0e962676647cb12b3fd4a79ff41c1de183"
+}

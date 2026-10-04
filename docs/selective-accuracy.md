@@ -47,7 +47,7 @@ uv run tradecopilot auth alpaca
 Then, from this feature branch:
 
 ```bash
-uv sync --frozen --all-extras
+uv sync --frozen --extra openai --extra plots
 uv run --no-sync python scripts/download_alpaca_history.py \
   --start 2026-04-20 --end 2026-09-16 \
   --output-dir .tradecopilot/selective/source-01
@@ -99,4 +99,4 @@ At the earlier fixed 0.6 raw-model threshold, 224 final-test cases were selected
 
 The public [aggregate result](results/2026-10-03-selective-retrospective/derived-results.json) contains scores, settings, splits and source fingerprints. Raw pages, minute bars, feature rows, cases, full predictions and model artifacts remain local. Verified private report ID: `e40b48f80839cfb0a54361a99c3a684b388dbb0da33219b2d2f6e9c614364f6b`.
 
-This provides a measured basis for the next Jev-context or downstream policy experiment. It does not establish improved Jev accuracy. Any RL trading simulator is a future milestone; no RL agent was implemented or trained in this run.
+This provides a measured basis for the next Jev-context or downstream policy experiment. It does not establish improved Jev accuracy. No RL agent was trained in this forecasting run. The subsequent [neural policy comparison](rl-neural-evaluation.md) is a separate MARKET_ONLY experiment.

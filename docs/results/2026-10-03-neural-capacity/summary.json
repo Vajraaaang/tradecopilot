@@ -1,0 +1,419 @@
+{
+  "constraints": {
+    "broker_orders": 0,
+    "new_jev_calls": 0
+  },
+  "cost_stress": {
+    "4": {
+      "control": {
+        "dates": 21,
+        "episodes": 105,
+        "execution_drag": 0.0,
+        "fees": 0.0,
+        "invalid_episodes": 0,
+        "max_episode_drawdown_bps": 0.0,
+        "mean_daily_return_bps": 0.0,
+        "trade_count": 0,
+        "turnover": 0.0,
+        "valid": true
+      },
+      "incremental_interval_bps": {
+        "dates": 21,
+        "high": 0.3935520108371473,
+        "low": -3.0778993852616363,
+        "mean": -1.4216059176790654,
+        "method": "paired_date_bootstrap_95pct"
+      },
+      "neural": {
+        "dates": 21,
+        "episodes": 105,
+        "execution_drag": 58.72936590940188,
+        "fees": 0.0,
+        "invalid_episodes": 0,
+        "max_episode_drawdown_bps": 17.495562221216517,
+        "mean_daily_return_bps": -1.4216059176790654,
+        "trade_count": 289,
+        "turnover": 146823.45098920687,
+        "valid": true
+      }
+    },
+    "8": {
+      "control": {
+        "dates": 21,
+        "episodes": 105,
+        "execution_drag": 0.0,
+        "fees": 0.0,
+        "invalid_episodes": 0,
+        "max_episode_drawdown_bps": 0.0,
+        "mean_daily_return_bps": 0.0,
+        "trade_count": 0,
+        "turnover": 0.0,
+        "valid": true
+      },
+      "incremental_interval_bps": {
+        "dates": 21,
+        "high": -0.1497249281617228,
+        "low": -3.6341093452189246,
+        "mean": -1.9801701239093803,
+        "method": "paired_date_bootstrap_95pct"
+      },
+      "neural": {
+        "dates": 21,
+        "episodes": 105,
+        "execution_drag": 117.41211321488495,
+        "fees": 0.0,
+        "invalid_episodes": 0,
+        "max_episode_drawdown_bps": 18.77332678365395,
+        "mean_daily_return_bps": -1.9801701239093803,
+        "trade_count": 289,
+        "turnover": 146765.21392320603,
+        "valid": true
+      }
+    }
+  },
+  "identities": {
+    "budget_id": "1094e1fa95956d658b8ea7927f91c2ac5c47340ea8dda966e0c461e6c3804010",
+    "prepared_data_id": "578f001bb9e444e522fb77dd21a24abe50d1d78c3144df0892660c1024adf44b",
+    "registration_id": "5bb6992bed6be525687269c4e0b12c0e962676647cb12b3fd4a79ff41c1de183",
+    "report_id": "3b0fee4fe7bba056ab71fffd823e4dc7cbcc0791d304150dddcae85b2d066a21"
+  },
+  "improvement_gate": {
+    "checks": {
+      "drawdown_limit": true,
+      "paired_lower_bounds": false,
+      "positive_doubled_cost_increment": false,
+      "positive_primary": false
+    },
+    "paired_intervals_bps": {
+      "cash": {
+        "dates": 21,
+        "high": 0.6840778923825673,
+        "low": -2.8235856770343175,
+        "mean": -1.1421575382426723,
+        "method": "paired_date_bootstrap_95pct"
+      }
+    },
+    "passed": false
+  },
+  "interpretation": "Retrospective independent symbol-day books with daily capital resets; no annualized operational profit claim.",
+  "metric": "mean daily net policy return in basis points",
+  "primary_seed": 44,
+  "primary_test": {
+    "dates": 21,
+    "episodes": 105,
+    "execution_drag": 29.3705134326806,
+    "fees": 0.0,
+    "invalid_episodes": 0,
+    "max_episode_drawdown_bps": 17.498883855810657,
+    "mean_daily_return_bps": -1.1421575382426723,
+    "trade_count": 289,
+    "turnover": 146852.5852746086,
+    "valid": true
+  },
+  "public_id": "e6899b5e203ec069ee9c04fc9999d9931849ab80caa4d4c00d65ee5b5d42bfbd",
+  "schema_version": "rl-capacity-public-v1",
+  "scope": "MARKET_ONLY",
+  "selected_candidate": "recurrent-256",
+  "selection_id": "ee4cbc9e8ecd19fda85f64a1831b7b70ed6c85b0bd2151684e3de54325f3f476",
+  "splits": {
+    "test": [
+      "2026-03-02",
+      "2026-03-30"
+    ],
+    "train": [
+      "2025-11-04",
+      "2026-01-30"
+    ],
+    "tune": [
+      "2026-02-02",
+      "2026-02-27"
+    ]
+  },
+  "status": "inconclusive_not_promoted",
+  "strongest_tune_control": "cash",
+  "test_controls": {
+    "cash": {
+      "dates": 21,
+      "episodes": 105,
+      "execution_drag": 0.0,
+      "fees": 0.0,
+      "invalid_episodes": 0,
+      "max_episode_drawdown_bps": 0.0,
+      "mean_daily_return_bps": 0.0,
+      "trade_count": 0,
+      "turnover": 0.0,
+      "valid": true
+    },
+    "hold": {
+      "dates": 21,
+      "episodes": 105,
+      "execution_drag": 41.95575355392426,
+      "fees": 0.0,
+      "invalid_episodes": 0,
+      "max_episode_drawdown_bps": 34.83896016848412,
+      "mean_daily_return_bps": -2.106372072792612,
+      "trade_count": 1122,
+      "turnover": 209778.80361228413,
+      "valid": true
+    },
+    "rule": {
+      "dates": 21,
+      "episodes": 105,
+      "execution_drag": 934.9760813669134,
+      "fees": 0.0,
+      "invalid_episodes": 0,
+      "max_episode_drawdown_bps": 34.604586210404555,
+      "mean_daily_return_bps": -10.656653637818222,
+      "trade_count": 6434,
+      "turnover": 4674880.443629077,
+      "valid": true
+    }
+  },
+  "test_seed_metrics": {
+    "42": {
+      "dates": 21,
+      "episodes": 105,
+      "execution_drag": 20.97777831377348,
+      "fees": 0.0,
+      "invalid_episodes": 0,
+      "max_episode_drawdown_bps": 17.498883855810657,
+      "mean_daily_return_bps": -1.0577295912645093,
+      "trade_count": 210,
+      "turnover": 104888.90958563316,
+      "valid": true
+    },
+    "43": {
+      "dates": 21,
+      "episodes": 105,
+      "execution_drag": 44.33931382971052,
+      "fees": 0.0,
+      "invalid_episodes": 0,
+      "max_episode_drawdown_bps": 33.56394125616286,
+      "mean_daily_return_bps": -2.7834000321324814,
+      "trade_count": 1055,
+      "turnover": 221696.61873209052,
+      "valid": true
+    },
+    "44": {
+      "dates": 21,
+      "episodes": 105,
+      "execution_drag": 29.3705134326806,
+      "fees": 0.0,
+      "invalid_episodes": 0,
+      "max_episode_drawdown_bps": 17.498883855810657,
+      "mean_daily_return_bps": -1.1421575382426723,
+      "trade_count": 289,
+      "turnover": 146852.5852746086,
+      "valid": true
+    }
+  },
+  "tune_architectures": [
+    {
+      "all_seeds_valid": true,
+      "candidate": "ppo-64",
+      "max_seed_daily_return_bps": -0.4582817129291572,
+      "mean_seed_daily_return_bps": -1.1252568805325143,
+      "min_seed_daily_return_bps": -1.9414398181670574,
+      "seeds": [
+        {
+          "actual_timesteps": 92160,
+          "device": "cpu",
+          "elapsed_seconds": 25.32804591600143,
+          "metrics": {
+            "dates": 19,
+            "episodes": 95,
+            "execution_drag": 110.76309558157045,
+            "fees": 0.0,
+            "invalid_episodes": 0,
+            "max_episode_drawdown_bps": 40.03297517949216,
+            "mean_daily_return_bps": -1.9414398181670574,
+            "trade_count": 1441,
+            "turnover": 553815.4926425897,
+            "valid": true
+          },
+          "n_parameters": 24964,
+          "seed": 42,
+          "status": "complete"
+        },
+        {
+          "actual_timesteps": 92160,
+          "device": "cpu",
+          "elapsed_seconds": 25.046560040995246,
+          "metrics": {
+            "dates": 19,
+            "episodes": 95,
+            "execution_drag": 23.37076318386992,
+            "fees": 0.0,
+            "invalid_episodes": 0,
+            "max_episode_drawdown_bps": 20.815517069093385,
+            "mean_daily_return_bps": -0.4582817129291572,
+            "trade_count": 234,
+            "turnover": 116853.81995254951,
+            "valid": true
+          },
+          "n_parameters": 24964,
+          "seed": 43,
+          "status": "complete"
+        },
+        {
+          "actual_timesteps": 92160,
+          "device": "cpu",
+          "elapsed_seconds": 25.57515675000468,
+          "metrics": {
+            "dates": 19,
+            "episodes": 95,
+            "execution_drag": 84.55219047572618,
+            "fees": 0.0,
+            "invalid_episodes": 0,
+            "max_episode_drawdown_bps": 20.815517069093385,
+            "mean_daily_return_bps": -0.9760491105013285,
+            "trade_count": 830,
+            "turnover": 422760.9540131259,
+            "valid": true
+          },
+          "n_parameters": 24964,
+          "seed": 44,
+          "status": "complete"
+        }
+      ]
+    },
+    {
+      "all_seeds_valid": true,
+      "candidate": "ppo-256",
+      "max_seed_daily_return_bps": -1.554123274294179,
+      "mean_seed_daily_return_bps": -1.9542770373398397,
+      "min_seed_daily_return_bps": -2.4668111309615885,
+      "seeds": [
+        {
+          "actual_timesteps": 92160,
+          "device": "cpu",
+          "elapsed_seconds": 32.940528915998584,
+          "metrics": {
+            "dates": 19,
+            "episodes": 95,
+            "execution_drag": 205.1789202734564,
+            "fees": 0.0,
+            "invalid_episodes": 0,
+            "max_episode_drawdown_bps": 40.8952349794824,
+            "mean_daily_return_bps": -1.8418967067637517,
+            "trade_count": 2668,
+            "turnover": 1025894.5953275354,
+            "valid": true
+          },
+          "n_parameters": 198148,
+          "seed": 42,
+          "status": "complete"
+        },
+        {
+          "actual_timesteps": 92160,
+          "device": "cpu",
+          "elapsed_seconds": 33.19074404199637,
+          "metrics": {
+            "dates": 19,
+            "episodes": 95,
+            "execution_drag": 247.26957092904703,
+            "fees": 0.0,
+            "invalid_episodes": 0,
+            "max_episode_drawdown_bps": 41.19079539958086,
+            "mean_daily_return_bps": -1.554123274294179,
+            "trade_count": 2523,
+            "turnover": 1236347.834719663,
+            "valid": true
+          },
+          "n_parameters": 198148,
+          "seed": 43,
+          "status": "complete"
+        },
+        {
+          "actual_timesteps": 92160,
+          "device": "cpu",
+          "elapsed_seconds": 32.82225524999376,
+          "metrics": {
+            "dates": 19,
+            "episodes": 95,
+            "execution_drag": 173.7772772522509,
+            "fees": 0.0,
+            "invalid_episodes": 0,
+            "max_episode_drawdown_bps": 24.458323550566387,
+            "mean_daily_return_bps": -2.4668111309615885,
+            "trade_count": 2313,
+            "turnover": 868886.3983752106,
+            "valid": true
+          },
+          "n_parameters": 198148,
+          "seed": 44,
+          "status": "complete"
+        }
+      ]
+    },
+    {
+      "all_seeds_valid": true,
+      "candidate": "recurrent-256",
+      "max_seed_daily_return_bps": -0.3663157938199068,
+      "mean_seed_daily_return_bps": -0.6309184251498772,
+      "min_seed_daily_return_bps": -1.157876014261105,
+      "seeds": [
+        {
+          "actual_timesteps": 92160,
+          "device": "cpu",
+          "elapsed_seconds": 466.779816166003,
+          "metrics": {
+            "dates": 19,
+            "episodes": 95,
+            "execution_drag": 18.99299140001884,
+            "fees": 0.0,
+            "invalid_episodes": 0,
+            "max_episode_drawdown_bps": 20.815517069093385,
+            "mean_daily_return_bps": -0.3685634673686196,
+            "trade_count": 190,
+            "turnover": 94964.9602042018,
+            "valid": true
+          },
+          "n_parameters": 986372,
+          "seed": 42,
+          "status": "complete"
+        },
+        {
+          "actual_timesteps": 92160,
+          "device": "cpu",
+          "elapsed_seconds": 474.134256790996,
+          "metrics": {
+            "dates": 19,
+            "episodes": 95,
+            "execution_drag": 41.978353744205,
+            "fees": 0.0,
+            "invalid_episodes": 0,
+            "max_episode_drawdown_bps": 33.45626193015183,
+            "mean_daily_return_bps": -1.157876014261105,
+            "trade_count": 1208,
+            "turnover": 209891.78232499852,
+            "valid": true
+          },
+          "n_parameters": 986372,
+          "seed": 43,
+          "status": "complete"
+        },
+        {
+          "actual_timesteps": 92160,
+          "device": "cpu",
+          "elapsed_seconds": 454.71879691699723,
+          "metrics": {
+            "dates": 19,
+            "episodes": 95,
+            "execution_drag": 48.78707609079114,
+            "fees": 0.0,
+            "invalid_episodes": 0,
+            "max_episode_drawdown_bps": 20.815517069093385,
+            "mean_daily_return_bps": -0.3663157938199068,
+            "trade_count": 452,
+            "turnover": 243935.37765654057,
+            "valid": true
+          },
+          "n_parameters": 986372,
+          "seed": 44,
+          "status": "complete"
+        }
+      ]
+    }
+  ]
+}

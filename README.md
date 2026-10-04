@@ -69,7 +69,11 @@ The [RL architecture](docs/rl-architecture.md) separates Jev forecasting from
 offline trading-policy learning. Its MARKET_ONLY foundation implements causal
 delayed execution, exact accounting, training-only observation normalization
 and a registered feedforward/recurrent capacity comparison. See the
-[neural evaluation protocol and evidence](docs/rl-neural-evaluation.md).
+[completed neural evaluation](docs/rl-neural-evaluation.md). Nine equal-budget
+runs selected recurrent PPO on February, but its frozen March checkpoint lost
+1.14 bps/day after costs versus zero for cash; no policy was promoted.
+![Neural architecture tuning comparison](docs/results/2026-10-03-neural-capacity/tune-architectures.png)
+
 Jev forecast caches and prospective policy confirmation remain later work; RL
 policy returns do not establish forecast accuracy.
 
