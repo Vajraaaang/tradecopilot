@@ -113,3 +113,21 @@ def test_histogram_missing_only_splits_roundtrip_in_finite_json(tmp_path):
     restored = load_ohlcv_model(path)
     expected = native.predict_proba(model.training_matrix(features))
     np.testing.assert_allclose(restored.probabilities(features), expected, atol=1e-10)
+
+
+def test_bounded_candidate_settings_preserve_defaults_and_portability():
+    from tradecopilot.forecast.ohlcv_models import fit_ohlcv_model
+
+    config, examples, features = rows(120)
+    model, native = fit_ohlcv_model("ohlcv_logistic", examples, features, config, settings={"C": 0.1})
+    assert model.parameters["fit_settings"]["C"] == 0.1
+    np.testing.assert_allclose(
+        model.probabilities(features), native.predict_proba(model.training_matrix(features)), atol=1e-10
+    )
+    boost, _ = fit_ohlcv_model(
+        "ohlcv_hist_gradient_boosting", examples, features, config, settings={"l2_regularization": 50.0}
+    )
+    assert boost.parameters["fit_settings"]["l2_regularization"] == 50
+    for settings in ({"early_stopping": True}, {"C": -1}, {"C": float("nan")}, {"C": True}):
+        with pytest.raises(ValueError, match="settings"):
+            fit_ohlcv_model("ohlcv_logistic", examples, features, config, settings=settings)
