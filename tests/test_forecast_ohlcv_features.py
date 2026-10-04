@@ -113,3 +113,21 @@ def test_current_volume_is_not_in_its_own_trailing_reference():
     ]
     revised = OhlcvFeatureBuilder(changed).build(row).values
     assert revised["relative_volume_prior_20m"] == pytest.approx(original["relative_volume_prior_20m"] * 10)
+
+
+def test_label_free_asof_adapter_matches_market_features_and_availability():
+    from tradecopilot.forecast.ohlcv_features import OhlcvFeatureBuilder
+
+    rows = bars()
+    row = example(rows)
+    builder = OhlcvFeatureBuilder(rows)
+    normal = builder.build(row)
+    market = builder.build_as_of(row.symbol, row.as_of, row.config_id)
+    assert market.values == normal.values
+    assert market.input_bars_hash == normal.input_bars_hash
+    assert market == builder.build_as_of(row.symbol, row.as_of, row.config_id)
+    assert market.base_example_id != row.example_id
+    late = [b.model_copy(update={"available_at": row.as_of + timedelta(minutes=1)})
+            if b.end_time == row.as_of and b.symbol == row.symbol else b for b in rows]
+    with pytest.raises(ValueError, match="anchor"):
+        OhlcvFeatureBuilder(late).build_as_of(row.symbol, row.as_of, row.config_id)
