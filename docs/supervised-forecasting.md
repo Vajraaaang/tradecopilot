@@ -10,6 +10,19 @@ exploratory experiment tests whether a learned classifier benefits from the
 already paid Jev probabilities. Neither experiment automatically changes the
 live adviser or places orders.
 
+```mermaid
+flowchart LR
+    A[Alpaca SIP minute bars] --> B[Causal inputs and timestamp eligibility]
+    B --> C[TRAIN-only preprocessing and model fits]
+    C --> D[TUNE probability-ensemble selection]
+    D --> E[CAL temperature]
+    E --> F[GATE acceptance criteria]
+    F --> G[Sealed TEST evaluation]
+    G --> H[Independent replay and aggregate results]
+    J[Existing Jev cache on consumed dates] --> K[Separate supervised input ablation]
+    K --> H
+```
+
 ## Fixed target and data
 
 The target is exact minute-close direction after 15 minutes: DOWN below −10 bps,
@@ -146,5 +159,97 @@ future model-development purposes; another confirmation requires new dates.
 
 ## Measured results
 
-Real fitting and final outcome scoring are pending. Replace this section only
-with the sealed executed report and independent recomputation.
+The real run completed on October 4, 2026. All four CPU arms and all six neural
+seeds completed under their registered budgets. LSTM64 was selected by TUNE
+ensemble log loss; the CPU reference was logistic C=0.01.
+
+| Primary model | TUNE log loss | TEST accuracy | TEST log loss | TEST macro F1 |
+| --- | ---: | ---: | ---: | ---: |
+| Class prior | 1.099408 | 43.46% | 1.098171 | 0.2020 |
+| Logistic C=0.01 (CPU reference) | 1.011326 | 47.44% | 1.032860 | 0.4050 |
+| Logistic C=1 | 1.012760 | 47.46% | 1.033440 | 0.4042 |
+| Histogram booster 31 leaves | 1.031808 | 46.75% | 1.035786 | 0.4135 |
+| TCN32 three-seed probability mean | 1.001743 | 46.95% | 1.026499 | 0.4047 |
+| LSTM64 three-seed probability mean (selected) | 0.996893 | 47.40% | 1.031836 | 0.4178 |
+
+All TEST models used the same 6,300 cases across 20 session dates. The selected
+LSTM scored 47.40% accuracy (date-bootstrap 95% interval 44.90–49.81%), versus
+47.44% for the CPU reference. Its raw log-loss gain was 0.001024, with paired
+95% interval −0.001896 to +0.004384. The five-date sensitivity interval also
+crossed zero (−0.000032 to +0.001887). **A neural improvement is not established.**
+
+TCN had the lowest TEST log loss, but it did not win TUNE selection. That is a
+diagnostic observation, not permission to switch the selected model after TEST.
+The CAL-selected temperature was 1.109569; calibrated TEST log loss was 1.035177,
+worse than raw 1.031836. Both values remain reported. No gate met the unchanged
+80% requirements, so the final research policy selects 0/6,300 cases: 0% coverage
+and N/A selected accuracy. No model is promoted.
+
+![All candidates on the complete final cohort](results/2026-10-04-supervised-forecast/test-all-candidates.png)
+
+![TUNE choice and every neural seed](results/2026-10-04-supervised-forecast/tune-choice-seed-diagnostics.png)
+
+![Unchanged accuracy, coverage and direction requirements](results/2026-10-04-supervised-forecast/gate-coverage-direction-precision.png)
+
+### Recorded neural budgets
+
+| Architecture | Seed | Completed epochs | Updates | Chosen epoch | Seconds |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| lstm-64 | 42 | 5 | 370 | 1 | 21.47 |
+| lstm-64 | 43 | 5 | 370 | 1 | 21.31 |
+| lstm-64 | 44 | 5 | 370 | 1 | 20.48 |
+| tcn-32 | 42 | 9 | 666 | 5 | 69.36 |
+| tcn-32 | 43 | 5 | 370 | 1 | 42.71 |
+| tcn-32 | 44 | 5 | 370 | 1 | 42.23 |
+
+All fits used the registered patience rule; no seed hit a time cap or failed.
+These runtimes are recorded execution costs, not a controlled hardware benchmark.
+
+### Exploratory Jev contribution
+
+The old cached TEST block contains 50 cases on ten already consumed dates, with
+45 available Jev forecasts. This is separate from the fresh 6,300-case study.
+
+| Fixed arm | All 50 accuracy | Available 45 accuracy | All-case log loss |
+| --- | ---: | ---: | ---: |
+| TRAIN class prior | 36.00% | 40.00% | 1.107208 |
+| Raw Jev with TRAIN-prior fallback | 24.00% | 26.67% | 1.434914 |
+| Market-context logistic | 44.00% | 40.00% | 1.103801 |
+| Same logistic plus Jev probabilities/confidence | 44.00% | 40.00% | 1.103265 |
+
+Adding Jev changed none of the 50 argmax decisions: both learned arms scored
+**44%**. The paired fusion-minus-context log-loss difference was −0.000535, with
+descriptive 95% interval −0.003392 to +0.001449. It does not establish a Jev gain.
+On available cases, the fusion log loss was slightly worse (1.131958 versus
+1.131191). The correction pipeline beat raw Jev, but the same market-only model
+achieved that accuracy; the gain cannot be credited to Jev.
+
+![Jev contribution on the consumed cohort](results/2026-10-04-supervised-forecast/jev-fusion-comparison.png)
+
+This milestone made **zero new Jev calls and spent $0 on Jev**. Cached API failures
+remain in the comparison, and no outcomes or thresholds were altered to make
+an 80% result. These TEST dates are now retired for future confirmation.
+
+### Evidence and verification
+
+The source timestamp audit covered all 46 raw pages and all 216,450 regular bars.
+An independent input audit reconstructed all 34,650 windows, TRAIN scalers, masks,
+symbol indicators and input IDs. Float32 arrays matched exactly; 1,650 fixed
+static-feature samples covered every stock/date/role and matched their source
+dependencies. Separate reviews found and repaired the full-registration and
+synthetic-evidence marker defects before fitting.
+
+Independent result replay matched all 81,900 saved TEST probability rows exactly;
+recomputed metrics differed by at most 2.22e-16. The fusion replay matched all
+400 cases and every metric exactly. The final local suite passed all 870 tests;
+Ruff and strict mypy passed. See the [validation record](validation-2026-10-04-supervised.md)
+and [aggregate independent audit](results/2026-10-04-supervised-forecast/independent-audit.json).
+
+See [aggregate summary](results/2026-10-04-supervised-forecast/summary.json),
+[frozen registration](results/2026-10-04-supervised-forecast/registration.json),
+[pretraining clarification](results/2026-10-04-supervised-forecast/pretraining-clarification.json)
+and [method/retirement registry](results/2026-10-04-supervised-forecast/method-registry.json).
+Private source rows, labeled cases, probability vectors and checkpoints remain local.
+
+Report identity: `20dd12da07716f1878e798fd008cece8558f851a9fe809b583b26fadf4783129`.
+Fusion report identity: `3fd82fa91684d2e5c6b8104d31dc0c4b8160b21d510b8e00bb067a68fe70e2b2`.

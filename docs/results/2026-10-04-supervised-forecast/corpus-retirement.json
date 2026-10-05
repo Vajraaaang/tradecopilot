@@ -1,0 +1,34 @@
+{
+  "schema_version": "supervised-corpus-retirement-v1",
+  "created_at": "2026-10-05T01:15:23.028925+00:00",
+  "reason": "Outcomes scored under frozen selections; these dates cannot be fresh confirmation for a subsequent changed model.",
+  "registration_id": "3ac13c643a6e22018273fd6abc2d43cd2a239b68a7ae00ce61ceabd87a26601d",
+  "prepared_data_id": "129bc09ae071703a64bdba21e7cf8bf6408d12780aa0cb99d156fb7639028447",
+  "source_data_id": "3cfb8bf69371ffc771f67123fd0f2c42d67d1d763349e4fa58ff8ccde3793923",
+  "report_id": "20dd12da07716f1878e798fd008cece8558f851a9fe809b583b26fadf4783129",
+  "fusion_report_id": "3fd82fa91684d2e5c6b8104d31dc0c4b8160b21d510b8e00bb067a68fe70e2b2",
+  "retired_source_ranges": [
+    [
+      "2025-01-02",
+      "2025-06-13"
+    ],
+    [
+      "2025-06-30",
+      "2025-10-23"
+    ],
+    [
+      "2025-11-03",
+      "2026-10-01"
+    ]
+  ],
+  "range_end_semantics": "exclusive",
+  "future_confirmation_requires_new_registered_dates": true,
+  "current_flags": {
+    "automatic_production_promotion": false,
+    "improvement_supported": false,
+    "observed_selective_target_met": false
+  },
+  "new_jev_calls": 0,
+  "broker_orders": 0,
+  "retirement_id": "b73cc5bf6efa2b799fca5aa86b1d12b00231344d0a677fe9daecab449e973ca7"
+}
