@@ -2533,6 +2533,10 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
+neural = [
+    { name = "torch", version = "2.14.1", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux'" },
+    { name = "torch", version = "2.14.1+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "sys_platform == 'linux'" },
+]
 openai = [
     { name = "openai" },
 ]
@@ -2576,10 +2580,12 @@ requires-dist = [
     { name = "sb3-contrib", marker = "extra == 'rl'", specifier = ">=2.7,<3" },
     { name = "scikit-learn", specifier = ">=1.5,<2" },
     { name = "stable-baselines3", marker = "extra == 'rl'", specifier = ">=2.7,<3" },
+    { name = "torch", marker = "sys_platform == 'linux' and extra == 'neural'", specifier = ">=2.8,<3", index = "https://download.pytorch.org/whl/cpu" },
     { name = "torch", marker = "sys_platform == 'linux' and extra == 'rl'", specifier = ">=2.8,<3", index = "https://download.pytorch.org/whl/cpu" },
+    { name = "torch", marker = "sys_platform != 'linux' and extra == 'neural'", specifier = ">=2.8,<3" },
     { name = "torch", marker = "sys_platform != 'linux' and extra == 'rl'", specifier = ">=2.8,<3" },
 ]
-provides-extras = ["sim", "rl", "openai", "plots"]
+provides-extras = ["sim", "neural", "rl", "openai", "plots"]
 
 [package.metadata.requires-dev]
 dev = [
