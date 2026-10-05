@@ -1,0 +1,1337 @@
+{
+  "confirmatory": false,
+  "evidence_mode": "consumed_date_exploration",
+  "metrics": {
+    "CONTEXT_LR": {
+      "test": {
+        "all_cases": {
+          "accuracy": 0.44,
+          "balanced_accuracy": 0.4265795206971677,
+          "brier_score": 0.6717537938298286,
+          "confusion_matrix": [
+            [
+              14,
+              2,
+              2
+            ],
+            [
+              13,
+              4,
+              0
+            ],
+            [
+              10,
+              1,
+              4
+            ]
+          ],
+          "coverage": 1.0,
+          "eligible": 50,
+          "jev_availability_coverage": 0.9,
+          "jev_available": 45,
+          "labels": [
+            "DOWN",
+            "FLAT",
+            "UP"
+          ],
+          "log_loss": 1.1038006549250803,
+          "macro_f1": 0.4077922077922078,
+          "per_class": {
+            "DOWN": {
+              "f1": 0.5090909090909091,
+              "precision": 0.3783783783783784,
+              "recall": 0.7777777777777778,
+              "support": 18
+            },
+            "FLAT": {
+              "f1": 0.3333333333333333,
+              "precision": 0.5714285714285714,
+              "recall": 0.23529411764705882,
+              "support": 17
+            },
+            "UP": {
+              "f1": 0.3809523809523809,
+              "precision": 0.6666666666666666,
+              "recall": 0.26666666666666666,
+              "support": 15
+            }
+          },
+          "scored": 50
+        },
+        "matched_available": {
+          "accuracy": 0.4,
+          "balanced_accuracy": 0.33769063180827885,
+          "brier_score": 0.6888494275439772,
+          "confusion_matrix": [
+            [
+              14,
+              2,
+              2
+            ],
+            [
+              13,
+              4,
+              0
+            ],
+            [
+              9,
+              1,
+              0
+            ]
+          ],
+          "coverage": 1.0,
+          "eligible": 45,
+          "jev_availability_coverage": 1.0,
+          "jev_available": 45,
+          "labels": [
+            "DOWN",
+            "FLAT",
+            "UP"
+          ],
+          "log_loss": 1.1311907080074484,
+          "macro_f1": 0.2839506172839506,
+          "per_class": {
+            "DOWN": {
+              "f1": 0.5185185185185185,
+              "precision": 0.3888888888888889,
+              "recall": 0.7777777777777778,
+              "support": 18
+            },
+            "FLAT": {
+              "f1": 0.3333333333333333,
+              "precision": 0.5714285714285714,
+              "recall": 0.23529411764705882,
+              "support": 17
+            },
+            "UP": {
+              "f1": 0.0,
+              "precision": 0.0,
+              "recall": 0.0,
+              "support": 10
+            }
+          },
+          "scored": 45
+        }
+      },
+      "train": {
+        "all_cases": {
+          "accuracy": 0.52,
+          "balanced_accuracy": 0.4901903342986758,
+          "brier_score": 0.5791124596131647,
+          "confusion_matrix": [
+            [
+              94,
+              19,
+              11
+            ],
+            [
+              40,
+              34,
+              8
+            ],
+            [
+              45,
+              21,
+              28
+            ]
+          ],
+          "coverage": 1.0,
+          "eligible": 300,
+          "jev_availability_coverage": 0.8666666666666667,
+          "jev_available": 260,
+          "labels": [
+            "DOWN",
+            "FLAT",
+            "UP"
+          ],
+          "log_loss": 0.9650342243877412,
+          "macro_f1": 0.484507534223144,
+          "per_class": {
+            "DOWN": {
+              "f1": 0.6204620462046204,
+              "precision": 0.5251396648044693,
+              "recall": 0.7580645161290323,
+              "support": 124
+            },
+            "FLAT": {
+              "f1": 0.4358974358974359,
+              "precision": 0.4594594594594595,
+              "recall": 0.4146341463414634,
+              "support": 82
+            },
+            "UP": {
+              "f1": 0.39716312056737585,
+              "precision": 0.5957446808510638,
+              "recall": 0.2978723404255319,
+              "support": 94
+            }
+          },
+          "scored": 300
+        },
+        "matched_available": {
+          "accuracy": 0.5384615384615384,
+          "balanced_accuracy": 0.499706572769953,
+          "brier_score": 0.5664308250591823,
+          "confusion_matrix": [
+            [
+              87,
+              16,
+              9
+            ],
+            [
+              33,
+              31,
+              7
+            ],
+            [
+              39,
+              16,
+              22
+            ]
+          ],
+          "coverage": 1.0,
+          "eligible": 260,
+          "jev_availability_coverage": 1.0,
+          "jev_available": 260,
+          "labels": [
+            "DOWN",
+            "FLAT",
+            "UP"
+          ],
+          "log_loss": 0.9462512083534143,
+          "macro_f1": 0.4957872278268532,
+          "per_class": {
+            "DOWN": {
+              "f1": 0.6420664206642066,
+              "precision": 0.5471698113207547,
+              "recall": 0.7767857142857143,
+              "support": 112
+            },
+            "FLAT": {
+              "f1": 0.4626865671641791,
+              "precision": 0.49206349206349204,
+              "recall": 0.43661971830985913,
+              "support": 71
+            },
+            "UP": {
+              "f1": 0.38260869565217387,
+              "precision": 0.5789473684210527,
+              "recall": 0.2857142857142857,
+              "support": 77
+            }
+          },
+          "scored": 260
+        }
+      },
+      "tune": {
+        "all_cases": {
+          "accuracy": 0.42,
+          "balanced_accuracy": 0.4535714285714285,
+          "brier_score": 0.6977659211284636,
+          "confusion_matrix": [
+            [
+              11,
+              1,
+              2
+            ],
+            [
+              7,
+              6,
+              3
+            ],
+            [
+              12,
+              4,
+              4
+            ]
+          ],
+          "coverage": 1.0,
+          "eligible": 50,
+          "jev_availability_coverage": 0.7,
+          "jev_available": 35,
+          "labels": [
+            "DOWN",
+            "FLAT",
+            "UP"
+          ],
+          "log_loss": 1.159917651287775,
+          "macro_f1": 0.40676883780332057,
+          "per_class": {
+            "DOWN": {
+              "f1": 0.5,
+              "precision": 0.36666666666666664,
+              "recall": 0.7857142857142857,
+              "support": 14
+            },
+            "FLAT": {
+              "f1": 0.4444444444444444,
+              "precision": 0.5454545454545454,
+              "recall": 0.375,
+              "support": 16
+            },
+            "UP": {
+              "f1": 0.2758620689655173,
+              "precision": 0.4444444444444444,
+              "recall": 0.2,
+              "support": 20
+            }
+          },
+          "scored": 50
+        },
+        "matched_available": {
+          "accuracy": 0.37142857142857144,
+          "balanced_accuracy": 0.38333333333333336,
+          "brier_score": 0.6736078385511778,
+          "confusion_matrix": [
+            [
+              10,
+              1,
+              1
+            ],
+            [
+              5,
+              2,
+              1
+            ],
+            [
+              10,
+              4,
+              1
+            ]
+          ],
+          "coverage": 1.0,
+          "eligible": 35,
+          "jev_availability_coverage": 1.0,
+          "jev_available": 35,
+          "labels": [
+            "DOWN",
+            "FLAT",
+            "UP"
+          ],
+          "log_loss": 1.076888688567459,
+          "macro_f1": 0.3061061061061061,
+          "per_class": {
+            "DOWN": {
+              "f1": 0.5405405405405406,
+              "precision": 0.4,
+              "recall": 0.8333333333333334,
+              "support": 12
+            },
+            "FLAT": {
+              "f1": 0.26666666666666666,
+              "precision": 0.2857142857142857,
+              "recall": 0.25,
+              "support": 8
+            },
+            "UP": {
+              "f1": 0.1111111111111111,
+              "precision": 0.3333333333333333,
+              "recall": 0.06666666666666667,
+              "support": 15
+            }
+          },
+          "scored": 35
+        }
+      }
+    },
+    "JEV_FUSION_LR": {
+      "test": {
+        "all_cases": {
+          "accuracy": 0.44,
+          "balanced_accuracy": 0.4265795206971677,
+          "brier_score": 0.6714976854229048,
+          "confusion_matrix": [
+            [
+              14,
+              2,
+              2
+            ],
+            [
+              13,
+              4,
+              0
+            ],
+            [
+              10,
+              1,
+              4
+            ]
+          ],
+          "coverage": 1.0,
+          "eligible": 50,
+          "jev_availability_coverage": 0.9,
+          "jev_available": 45,
+          "labels": [
+            "DOWN",
+            "FLAT",
+            "UP"
+          ],
+          "log_loss": 1.103265416686556,
+          "macro_f1": 0.4077922077922078,
+          "per_class": {
+            "DOWN": {
+              "f1": 0.5090909090909091,
+              "precision": 0.3783783783783784,
+              "recall": 0.7777777777777778,
+              "support": 18
+            },
+            "FLAT": {
+              "f1": 0.3333333333333333,
+              "precision": 0.5714285714285714,
+              "recall": 0.23529411764705882,
+              "support": 17
+            },
+            "UP": {
+              "f1": 0.3809523809523809,
+              "precision": 0.6666666666666666,
+              "recall": 0.26666666666666666,
+              "support": 15
+            }
+          },
+          "scored": 50
+        },
+        "matched_available": {
+          "accuracy": 0.4,
+          "balanced_accuracy": 0.33769063180827885,
+          "brier_score": 0.6895830865513389,
+          "confusion_matrix": [
+            [
+              14,
+              2,
+              2
+            ],
+            [
+              13,
+              4,
+              0
+            ],
+            [
+              9,
+              1,
+              0
+            ]
+          ],
+          "coverage": 1.0,
+          "eligible": 45,
+          "jev_availability_coverage": 1.0,
+          "jev_available": 45,
+          "labels": [
+            "DOWN",
+            "FLAT",
+            "UP"
+          ],
+          "log_loss": 1.1319578281611808,
+          "macro_f1": 0.2839506172839506,
+          "per_class": {
+            "DOWN": {
+              "f1": 0.5185185185185185,
+              "precision": 0.3888888888888889,
+              "recall": 0.7777777777777778,
+              "support": 18
+            },
+            "FLAT": {
+              "f1": 0.3333333333333333,
+              "precision": 0.5714285714285714,
+              "recall": 0.23529411764705882,
+              "support": 17
+            },
+            "UP": {
+              "f1": 0.0,
+              "precision": 0.0,
+              "recall": 0.0,
+              "support": 10
+            }
+          },
+          "scored": 45
+        }
+      },
+      "train": {
+        "all_cases": {
+          "accuracy": 0.5266666666666666,
+          "balanced_accuracy": 0.4978014742398625,
+          "brier_score": 0.5785437320789384,
+          "confusion_matrix": [
+            [
+              94,
+              19,
+              11
+            ],
+            [
+              40,
+              35,
+              7
+            ],
+            [
+              43,
+              22,
+              29
+            ]
+          ],
+          "coverage": 1.0,
+          "eligible": 300,
+          "jev_availability_coverage": 0.8666666666666667,
+          "jev_available": 260,
+          "labels": [
+            "DOWN",
+            "FLAT",
+            "UP"
+          ],
+          "log_loss": 0.9642662147169051,
+          "macro_f1": 0.49299007000733813,
+          "per_class": {
+            "DOWN": {
+              "f1": 0.6245847176079734,
+              "precision": 0.5310734463276836,
+              "recall": 0.7580645161290323,
+              "support": 124
+            },
+            "FLAT": {
+              "f1": 0.44303797468354433,
+              "precision": 0.4605263157894737,
+              "recall": 0.4268292682926829,
+              "support": 82
+            },
+            "UP": {
+              "f1": 0.4113475177304965,
+              "precision": 0.6170212765957447,
+              "recall": 0.30851063829787234,
+              "support": 94
+            }
+          },
+          "scored": 300
+        },
+        "matched_available": {
+          "accuracy": 0.5423076923076923,
+          "balanced_accuracy": 0.5044014084507041,
+          "brier_score": 0.5659808202763325,
+          "confusion_matrix": [
+            [
+              87,
+              16,
+              9
+            ],
+            [
+              33,
+              32,
+              6
+            ],
+            [
+              38,
+              17,
+              22
+            ]
+          ],
+          "coverage": 1.0,
+          "eligible": 260,
+          "jev_availability_coverage": 1.0,
+          "jev_available": 260,
+          "labels": [
+            "DOWN",
+            "FLAT",
+            "UP"
+          ],
+          "log_loss": 0.9456154094304439,
+          "macro_f1": 0.5003325306730879,
+          "per_class": {
+            "DOWN": {
+              "f1": 0.6444444444444445,
+              "precision": 0.5506329113924051,
+              "recall": 0.7767857142857143,
+              "support": 112
+            },
+            "FLAT": {
+              "f1": 0.47058823529411764,
+              "precision": 0.49230769230769234,
+              "recall": 0.4507042253521127,
+              "support": 71
+            },
+            "UP": {
+              "f1": 0.38596491228070173,
+              "precision": 0.5945945945945946,
+              "recall": 0.2857142857142857,
+              "support": 77
+            }
+          },
+          "scored": 260
+        }
+      },
+      "tune": {
+        "all_cases": {
+          "accuracy": 0.44,
+          "balanced_accuracy": 0.4773809523809524,
+          "brier_score": 0.6973371701629903,
+          "confusion_matrix": [
+            [
+              12,
+              1,
+              1
+            ],
+            [
+              7,
+              6,
+              3
+            ],
+            [
+              12,
+              4,
+              4
+            ]
+          ],
+          "coverage": 1.0,
+          "eligible": 50,
+          "jev_availability_coverage": 0.7,
+          "jev_available": 35,
+          "labels": [
+            "DOWN",
+            "FLAT",
+            "UP"
+          ],
+          "log_loss": 1.1593679933598962,
+          "macro_f1": 0.42116402116402113,
+          "per_class": {
+            "DOWN": {
+              "f1": 0.5333333333333333,
+              "precision": 0.3870967741935484,
+              "recall": 0.8571428571428571,
+              "support": 14
+            },
+            "FLAT": {
+              "f1": 0.4444444444444444,
+              "precision": 0.5454545454545454,
+              "recall": 0.375,
+              "support": 16
+            },
+            "UP": {
+              "f1": 0.28571428571428575,
+              "precision": 0.5,
+              "recall": 0.2,
+              "support": 20
+            }
+          },
+          "scored": 50
+        },
+        "matched_available": {
+          "accuracy": 0.4,
+          "balanced_accuracy": 0.41111111111111104,
+          "brier_score": 0.6736184726450483,
+          "confusion_matrix": [
+            [
+              11,
+              1,
+              0
+            ],
+            [
+              5,
+              2,
+              1
+            ],
+            [
+              10,
+              4,
+              1
+            ]
+          ],
+          "coverage": 1.0,
+          "eligible": 35,
+          "jev_availability_coverage": 1.0,
+          "jev_available": 35,
+          "labels": [
+            "DOWN",
+            "FLAT",
+            "UP"
+          ],
+          "log_loss": 1.0772203440207997,
+          "macro_f1": 0.32108703130374955,
+          "per_class": {
+            "DOWN": {
+              "f1": 0.5789473684210527,
+              "precision": 0.4230769230769231,
+              "recall": 0.9166666666666666,
+              "support": 12
+            },
+            "FLAT": {
+              "f1": 0.26666666666666666,
+              "precision": 0.2857142857142857,
+              "recall": 0.25,
+              "support": 8
+            },
+            "UP": {
+              "f1": 0.11764705882352941,
+              "precision": 0.5,
+              "recall": 0.06666666666666667,
+              "support": 15
+            }
+          },
+          "scored": 35
+        }
+      }
+    },
+    "RAW_JEV": {
+      "test": {
+        "all_cases": {
+          "accuracy": 0.24,
+          "balanced_accuracy": 0.2318082788671024,
+          "brier_score": 0.8797386666666667,
+          "confusion_matrix": [
+            [
+              8,
+              6,
+              4
+            ],
+            [
+              9,
+              2,
+              6
+            ],
+            [
+              10,
+              3,
+              2
+            ]
+          ],
+          "coverage": 1.0,
+          "eligible": 50,
+          "jev_availability_coverage": 0.9,
+          "jev_available": 45,
+          "labels": [
+            "DOWN",
+            "FLAT",
+            "UP"
+          ],
+          "log_loss": 1.4349135071300787,
+          "macro_f1": 0.21552028218694885,
+          "per_class": {
+            "DOWN": {
+              "f1": 0.3555555555555555,
+              "precision": 0.2962962962962963,
+              "recall": 0.4444444444444444,
+              "support": 18
+            },
+            "FLAT": {
+              "f1": 0.14285714285714285,
+              "precision": 0.18181818181818182,
+              "recall": 0.11764705882352941,
+              "support": 17
+            },
+            "UP": {
+              "f1": 0.14814814814814814,
+              "precision": 0.16666666666666666,
+              "recall": 0.13333333333333333,
+              "support": 15
+            }
+          },
+          "scored": 50
+        },
+        "matched_available": {
+          "accuracy": 0.26666666666666666,
+          "balanced_accuracy": 0.2540305010893246,
+          "brier_score": 0.8978133333333334,
+          "confusion_matrix": [
+            [
+              8,
+              6,
+              4
+            ],
+            [
+              9,
+              2,
+              6
+            ],
+            [
+              5,
+              3,
+              2
+            ]
+          ],
+          "coverage": 1.0,
+          "eligible": 45,
+          "jev_availability_coverage": 1.0,
+          "jev_available": 45,
+          "labels": [
+            "DOWN",
+            "FLAT",
+            "UP"
+          ],
+          "log_loss": 1.4654052643238433,
+          "macro_f1": 0.24155844155844153,
+          "per_class": {
+            "DOWN": {
+              "f1": 0.39999999999999997,
+              "precision": 0.36363636363636365,
+              "recall": 0.4444444444444444,
+              "support": 18
+            },
+            "FLAT": {
+              "f1": 0.14285714285714285,
+              "precision": 0.18181818181818182,
+              "recall": 0.11764705882352941,
+              "support": 17
+            },
+            "UP": {
+              "f1": 0.1818181818181818,
+              "precision": 0.16666666666666666,
+              "recall": 0.2,
+              "support": 10
+            }
+          },
+          "scored": 45
+        }
+      },
+      "train": {
+        "all_cases": {
+          "accuracy": 0.36333333333333334,
+          "balanced_accuracy": 0.3500775622032129,
+          "brier_score": 0.7773588888888889,
+          "confusion_matrix": [
+            [
+              57,
+              25,
+              42
+            ],
+            [
+              33,
+              24,
+              25
+            ],
+            [
+              50,
+              16,
+              28
+            ]
+          ],
+          "coverage": 1.0,
+          "eligible": 300,
+          "jev_availability_coverage": 0.8666666666666667,
+          "jev_available": 260,
+          "labels": [
+            "DOWN",
+            "FLAT",
+            "UP"
+          ],
+          "log_loss": 1.3418019631896496,
+          "macro_f1": 0.35154836345312535,
+          "per_class": {
+            "DOWN": {
+              "f1": 0.4318181818181818,
+              "precision": 0.40714285714285714,
+              "recall": 0.4596774193548387,
+              "support": 124
+            },
+            "FLAT": {
+              "f1": 0.32653061224489793,
+              "precision": 0.36923076923076925,
+              "recall": 0.2926829268292683,
+              "support": 82
+            },
+            "UP": {
+              "f1": 0.2962962962962962,
+              "precision": 0.29473684210526313,
+              "recall": 0.2978723404255319,
+              "support": 94
+            }
+          },
+          "scored": 300
+        },
+        "matched_available": {
+          "accuracy": 0.3730769230769231,
+          "balanced_accuracy": 0.3678167489787208,
+          "brier_score": 0.7924807692307692,
+          "confusion_matrix": [
+            [
+              45,
+              25,
+              42
+            ],
+            [
+              22,
+              24,
+              25
+            ],
+            [
+              33,
+              16,
+              28
+            ]
+          ],
+          "coverage": 1.0,
+          "eligible": 260,
+          "jev_availability_coverage": 1.0,
+          "jev_available": 260,
+          "labels": [
+            "DOWN",
+            "FLAT",
+            "UP"
+          ],
+          "log_loss": 1.3767022760630927,
+          "macro_f1": 0.3676836245687394,
+          "per_class": {
+            "DOWN": {
+              "f1": 0.42452830188679247,
+              "precision": 0.45,
+              "recall": 0.4017857142857143,
+              "support": 112
+            },
+            "FLAT": {
+              "f1": 0.35294117647058826,
+              "precision": 0.36923076923076925,
+              "recall": 0.3380281690140845,
+              "support": 71
+            },
+            "UP": {
+              "f1": 0.32558139534883723,
+              "precision": 0.29473684210526313,
+              "recall": 0.36363636363636365,
+              "support": 77
+            }
+          },
+          "scored": 260
+        }
+      },
+      "tune": {
+        "all_cases": {
+          "accuracy": 0.28,
+          "balanced_accuracy": 0.29285714285714287,
+          "brier_score": 0.8096359999999998,
+          "confusion_matrix": [
+            [
+              6,
+              4,
+              4
+            ],
+            [
+              12,
+              4,
+              0
+            ],
+            [
+              9,
+              7,
+              4
+            ]
+          ],
+          "coverage": 1.0,
+          "eligible": 50,
+          "jev_availability_coverage": 0.7,
+          "jev_available": 35,
+          "labels": [
+            "DOWN",
+            "FLAT",
+            "UP"
+          ],
+          "log_loss": 1.3729226202674303,
+          "macro_f1": 0.2788205762241955,
+          "per_class": {
+            "DOWN": {
+              "f1": 0.29268292682926833,
+              "precision": 0.2222222222222222,
+              "recall": 0.42857142857142855,
+              "support": 14
+            },
+            "FLAT": {
+              "f1": 0.2580645161290323,
+              "precision": 0.26666666666666666,
+              "recall": 0.25,
+              "support": 16
+            },
+            "UP": {
+              "f1": 0.28571428571428575,
+              "precision": 0.5,
+              "recall": 0.2,
+              "support": 20
+            }
+          },
+          "scored": 50
+        },
+        "matched_available": {
+          "accuracy": 0.34285714285714286,
+          "balanced_accuracy": 0.36666666666666664,
+          "brier_score": 0.8424514285714286,
+          "confusion_matrix": [
+            [
+              4,
+              4,
+              4
+            ],
+            [
+              4,
+              4,
+              0
+            ],
+            [
+              4,
+              7,
+              4
+            ]
+          ],
+          "coverage": 1.0,
+          "eligible": 35,
+          "jev_availability_coverage": 1.0,
+          "jev_available": 35,
+          "labels": [
+            "DOWN",
+            "FLAT",
+            "UP"
+          ],
+          "log_loss": 1.4485767118343602,
+          "macro_f1": 0.34299516908212563,
+          "per_class": {
+            "DOWN": {
+              "f1": 0.3333333333333333,
+              "precision": 0.3333333333333333,
+              "recall": 0.3333333333333333,
+              "support": 12
+            },
+            "FLAT": {
+              "f1": 0.3478260869565218,
+              "precision": 0.26666666666666666,
+              "recall": 0.5,
+              "support": 8
+            },
+            "UP": {
+              "f1": 0.3478260869565218,
+              "precision": 0.5,
+              "recall": 0.26666666666666666,
+              "support": 15
+            }
+          },
+          "scored": 35
+        }
+      }
+    },
+    "TRAIN_PRIOR": {
+      "test": {
+        "all_cases": {
+          "accuracy": 0.36,
+          "balanced_accuracy": 0.3333333333333333,
+          "brier_score": 0.6722666666666666,
+          "confusion_matrix": [
+            [
+              18,
+              0,
+              0
+            ],
+            [
+              17,
+              0,
+              0
+            ],
+            [
+              15,
+              0,
+              0
+            ]
+          ],
+          "coverage": 1.0,
+          "eligible": 50,
+          "jev_availability_coverage": 0.9,
+          "jev_available": 45,
+          "labels": [
+            "DOWN",
+            "FLAT",
+            "UP"
+          ],
+          "log_loss": 1.1072081322875404,
+          "macro_f1": 0.17647058823529413,
+          "per_class": {
+            "DOWN": {
+              "f1": 0.5294117647058824,
+              "precision": 0.36,
+              "recall": 1.0,
+              "support": 18
+            },
+            "FLAT": {
+              "f1": 0.0,
+              "precision": 0.0,
+              "recall": 0.0,
+              "support": 17
+            },
+            "UP": {
+              "f1": 0.0,
+              "precision": 0.0,
+              "recall": 0.0,
+              "support": 15
+            }
+          },
+          "scored": 50
+        },
+        "matched_available": {
+          "accuracy": 0.4,
+          "balanced_accuracy": 0.3333333333333333,
+          "brier_score": 0.667288888888889,
+          "confusion_matrix": [
+            [
+              18,
+              0,
+              0
+            ],
+            [
+              17,
+              0,
+              0
+            ],
+            [
+              10,
+              0,
+              0
+            ]
+          ],
+          "coverage": 1.0,
+          "eligible": 45,
+          "jev_availability_coverage": 1.0,
+          "jev_available": 45,
+          "labels": [
+            "DOWN",
+            "FLAT",
+            "UP"
+          ],
+          "log_loss": 1.1012881811654676,
+          "macro_f1": 0.1904761904761905,
+          "per_class": {
+            "DOWN": {
+              "f1": 0.5714285714285715,
+              "precision": 0.4,
+              "recall": 1.0,
+              "support": 18
+            },
+            "FLAT": {
+              "f1": 0.0,
+              "precision": 0.0,
+              "recall": 0.0,
+              "support": 17
+            },
+            "UP": {
+              "f1": 0.0,
+              "precision": 0.0,
+              "recall": 0.0,
+              "support": 10
+            }
+          },
+          "scored": 45
+        }
+      },
+      "train": {
+        "all_cases": {
+          "accuracy": 0.41333333333333333,
+          "balanced_accuracy": 0.3333333333333333,
+          "brier_score": 0.6562666666666667,
+          "confusion_matrix": [
+            [
+              124,
+              0,
+              0
+            ],
+            [
+              82,
+              0,
+              0
+            ],
+            [
+              94,
+              0,
+              0
+            ]
+          ],
+          "coverage": 1.0,
+          "eligible": 300,
+          "jev_availability_coverage": 0.8666666666666667,
+          "jev_available": 260,
+          "labels": [
+            "DOWN",
+            "FLAT",
+            "UP"
+          ],
+          "log_loss": 1.0833304681759552,
+          "macro_f1": 0.19496855345911948,
+          "per_class": {
+            "DOWN": {
+              "f1": 0.5849056603773585,
+              "precision": 0.41333333333333333,
+              "recall": 1.0,
+              "support": 124
+            },
+            "FLAT": {
+              "f1": 0.0,
+              "precision": 0.0,
+              "recall": 0.0,
+              "support": 82
+            },
+            "UP": {
+              "f1": 0.0,
+              "precision": 0.0,
+              "recall": 0.0,
+              "support": 94
+            }
+          },
+          "scored": 300
+        },
+        "matched_available": {
+          "accuracy": 0.4307692307692308,
+          "balanced_accuracy": 0.3333333333333333,
+          "brier_score": 0.6527589743589743,
+          "confusion_matrix": [
+            [
+              112,
+              0,
+              0
+            ],
+            [
+              71,
+              0,
+              0
+            ],
+            [
+              77,
+              0,
+              0
+            ]
+          ],
+          "coverage": 1.0,
+          "eligible": 260,
+          "jev_availability_coverage": 1.0,
+          "jev_available": 260,
+          "labels": [
+            "DOWN",
+            "FLAT",
+            "UP"
+          ],
+          "log_loss": 1.0784659356626767,
+          "macro_f1": 0.2007168458781362,
+          "per_class": {
+            "DOWN": {
+              "f1": 0.6021505376344086,
+              "precision": 0.4307692307692308,
+              "recall": 1.0,
+              "support": 112
+            },
+            "FLAT": {
+              "f1": 0.0,
+              "precision": 0.0,
+              "recall": 0.0,
+              "support": 71
+            },
+            "UP": {
+              "f1": 0.0,
+              "precision": 0.0,
+              "recall": 0.0,
+              "support": 77
+            }
+          },
+          "scored": 260
+        }
+      },
+      "tune": {
+        "all_cases": {
+          "accuracy": 0.28,
+          "balanced_accuracy": 0.3333333333333333,
+          "brier_score": 0.6866666666666665,
+          "confusion_matrix": [
+            [
+              14,
+              0,
+              0
+            ],
+            [
+              16,
+              0,
+              0
+            ],
+            [
+              20,
+              0,
+              0
+            ]
+          ],
+          "coverage": 1.0,
+          "eligible": 50,
+          "jev_availability_coverage": 0.7,
+          "jev_available": 35,
+          "labels": [
+            "DOWN",
+            "FLAT",
+            "UP"
+          ],
+          "log_loss": 1.1266355642542283,
+          "macro_f1": 0.14583333333333334,
+          "per_class": {
+            "DOWN": {
+              "f1": 0.43750000000000006,
+              "precision": 0.28,
+              "recall": 1.0,
+              "support": 14
+            },
+            "FLAT": {
+              "f1": 0.0,
+              "precision": 0.0,
+              "recall": 0.0,
+              "support": 16
+            },
+            "UP": {
+              "f1": 0.0,
+              "precision": 0.0,
+              "recall": 0.0,
+              "support": 20
+            }
+          },
+          "scored": 50
+        },
+        "matched_available": {
+          "accuracy": 0.34285714285714286,
+          "balanced_accuracy": 0.3333333333333333,
+          "brier_score": 0.6667809523809524,
+          "confusion_matrix": [
+            [
+              12,
+              0,
+              0
+            ],
+            [
+              8,
+              0,
+              0
+            ],
+            [
+              15,
+              0,
+              0
+            ]
+          ],
+          "coverage": 1.0,
+          "eligible": 35,
+          "jev_availability_coverage": 1.0,
+          "jev_available": 35,
+          "labels": [
+            "DOWN",
+            "FLAT",
+            "UP"
+          ],
+          "log_loss": 1.0967380603869288,
+          "macro_f1": 0.1702127659574468,
+          "per_class": {
+            "DOWN": {
+              "f1": 0.5106382978723404,
+              "precision": 0.34285714285714286,
+              "recall": 1.0,
+              "support": 12
+            },
+            "FLAT": {
+              "f1": 0.0,
+              "precision": 0.0,
+              "recall": 0.0,
+              "support": 8
+            },
+            "UP": {
+              "f1": 0.0,
+              "precision": 0.0,
+              "recall": 0.0,
+              "support": 15
+            }
+          },
+          "scored": 35
+        }
+      }
+    }
+  },
+  "report_id": "3fd82fa91684d2e5c6b8104d31dc0c4b8160b21d510b8e00bb067a68fe70e2b2",
+  "schema_version": "jev-fusion-public-class-diagnostics-v1",
+  "summary_id": "70fe1b02af6a7b67ab52f7d3b726875c4a812e448a05d7c956fb5c231603b2e8"
+}

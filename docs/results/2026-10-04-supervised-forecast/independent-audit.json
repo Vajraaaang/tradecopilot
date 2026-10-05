@@ -1,0 +1,504 @@
+{
+  "broker_orders": 0,
+  "code_review": {
+    "independently_verified": 2,
+    "initial_findings": 2,
+    "registration_fixture_byte_identical": true,
+    "repaired_before_any_real_fit": 2,
+    "semantic_scopes": [
+      "data",
+      "models_and_dependencies",
+      "study_and_fusion",
+      "repair_and_renderer"
+    ],
+    "unresolved_findings": 0
+  },
+  "core_sha": "5dc2bf1cd7b3d4b0dde5f7f9b12491fbbe5ac932",
+  "created_at": "2026-10-05T01:20:37.646355+00:00",
+  "fusion": {
+    "cache_id": "a5828202884e035b53231bd7392e6ade78547eb95a25628da6e78febdea2af76",
+    "case_proof": {
+      "available_counts": {
+        "test": 45,
+        "train": 260,
+        "tune": 35
+      },
+      "drops": 0,
+      "exact_15m_labels_recomputed": 400,
+      "expected": 400,
+      "input_feature_and_case_ids_reconstructed": 400,
+      "retained": 400,
+      "split_counts": {
+        "test": 50,
+        "train": 300,
+        "tune": 50
+      },
+      "statuses": {
+        "test": {
+          "abstained": 27,
+          "ok": 18,
+          "unavailable": 5
+        },
+        "train": {
+          "abstained": 202,
+          "ok": 58,
+          "unavailable": 40
+        },
+        "tune": {
+          "abstained": 29,
+          "ok": 6,
+          "unavailable": 15
+        }
+      },
+      "unique_case_ids": 400
+    },
+    "interpretation": {
+      "audit_is_replay_not_reselection": true,
+      "confirmatory": false,
+      "evidence_mode": "consumed_date_exploration",
+      "fit_history_proof": "TRAIN-only archived cohort/scaler/hash plus reviewed runner; weights were not refitted",
+      "fresh_selection_allowed": false,
+      "limitations": [
+        "Previously consumed dates; interval is descriptive.",
+        "Cached forecasts were generated retrospectively; simulated availability is hypothetical.",
+        "Vendor pretraining overlap and future generalization remain unverified."
+      ],
+      "new_api_calls": 0,
+      "retuning": false,
+      "supports_80_percent_claim": false
+    },
+    "maximum_metric_difference": 0.0,
+    "metrics_verified": 24,
+    "paired_test_nll": {
+      "cases": 50,
+      "dates": 10,
+      "high": 0.0014487809403730552,
+      "interval_includes_zero": true,
+      "low": -0.003391931634000322,
+      "maximum_report_difference": 0.0,
+      "mean_difference": -0.0005352382385241816,
+      "resamples": 1000,
+      "seed": 42,
+      "sign": "fusion-minus-context; negative favors fusion",
+      "unit": "whole_date_all_symbols"
+    },
+    "prediction_proof": {
+      "all_four_arms_replayed": true,
+      "maximum_safe_json_probability_difference": 0.0,
+      "maximum_saved_probability_difference": 0.0,
+      "raw_jev_prior_fallback_verified": true
+    },
+    "private_audit_id": "0e4a9316af138662f094a5f5d7f3f814f588c5a90c7ebad7758a73472b2d309e",
+    "report_id": "3fd82fa91684d2e5c6b8104d31dc0c4b8160b21d510b8e00bb067a68fe70e2b2",
+    "representation_proof": {
+      "TRAIN_features_labels_hash_verified": true,
+      "TRAIN_fit_cases": 300,
+      "TRAIN_normalizer_recomputed": true,
+      "TRAIN_prior_recomputed": true,
+      "actual_generation_time_not_feature": true,
+      "added_fields": [
+        "jev_p_down",
+        "jev_p_flat",
+        "jev_p_up",
+        "jev_model_confidence"
+      ],
+      "context_dimensions": 121,
+      "fixed_settings": {
+        "C": 0.01,
+        "class_weight": null,
+        "max_iter": 1000,
+        "objective": "unweighted_multinomial_log_loss",
+        "random_state": 42,
+        "solver": "lbfgs",
+        "threads": 1
+      },
+      "fusion_dimensions": 125,
+      "maximum_normalizer_difference": 0.0,
+      "new_fits": 0,
+      "shared_context_exact": true
+    },
+    "status": "PASS"
+  },
+  "input_static_sample": {
+    "feature_values_compared": 90750,
+    "records": 1650,
+    "selection_rule": "first, middle, last eligible anchor for every stock/session group across all five roles",
+    "source_dependency_hashes_exact": true
+  },
+  "inputs": {
+    "audit_id": "eb6d65e349ee524b7b4dae1f43d593e049d30e7cf5cb46293b164005873a6d81",
+    "eligible_case_count": 34650,
+    "limitations": [
+      "No outcome targets or labeled example files are opened. Target-price values, labels, accuracy, losses, model fitting and candidate selection are outside this audit.",
+      "Static feature values and exact source dependency sets are numerically recomputed on a fixed representative timestamp sample; static record hashes, shapes, normalization, masks and one-hot contracts are checked on every case.",
+      "Raw-page inventory hashes are checked; source bars are loaded through the existing immutable bar integrity contract. This audit does not independently repeat provider raw-page parsing or authenticate provider data."
+    ],
+    "method_registry_id": "15d6bcf51fb6bc20054d6d4857f70fbdf7a0ea0acd3cad8244a7ad400d8c8923",
+    "models_fitted": false,
+    "normalizer_id": "51a049dfbc7ee973676ebb0ddc6cd993d8c54b70d46a8c91cca4d33427e0e1f4",
+    "normalizer_results": {
+      "sequence_mean": {
+        "max_absolute_difference": 0.0,
+        "max_scaled_tolerance_fraction": 0.0,
+        "mismatched_elements": 0,
+        "worst_index": [
+          0
+        ]
+      },
+      "sequence_scale": {
+        "max_absolute_difference": 0.0,
+        "max_scaled_tolerance_fraction": 0.0,
+        "mismatched_elements": 0,
+        "worst_index": [
+          0
+        ]
+      },
+      "static_mean": {
+        "max_absolute_difference": 1.1084466677857563e-12,
+        "max_scaled_tolerance_fraction": 0.00037462646570946706,
+        "mismatched_elements": 0,
+        "worst_index": [
+          52
+        ]
+      },
+      "static_scale": {
+        "max_absolute_difference": 1.7132961716015416e-12,
+        "max_scaled_tolerance_fraction": 0.0016227434671833578,
+        "mismatched_elements": 0,
+        "worst_index": [
+          46
+        ]
+      }
+    },
+    "normalizer_train_case_count": 18900,
+    "outcome_files_opened": false,
+    "prepared_data_id": "129bc09ae071703a64bdba21e7cf8bf6408d12780aa0cb99d156fb7639028447",
+    "quality_scores_computed": false,
+    "role_results": {
+      "CAL": {
+        "cases": 3150,
+        "input_only_case_ids_reconstructed": 3150,
+        "masks_binary_onehot_exact": true,
+        "sampled_static_dependency_hashes_verified": 150,
+        "sampled_static_formula_records": 150,
+        "sequence_array": {
+          "max_absolute_difference": 0.0,
+          "max_scaled_tolerance_fraction": 0.0,
+          "mismatched_elements": 0,
+          "worst_index": [
+            0,
+            0,
+            0
+          ]
+        },
+        "sequences_verified": 3150,
+        "static_array": {
+          "max_absolute_difference": 0.0,
+          "max_scaled_tolerance_fraction": 0.0,
+          "mismatched_elements": 0,
+          "worst_index": [
+            0,
+            0
+          ]
+        },
+        "static_record_hashes_verified": 3150,
+        "unique_stock_date_groups": 50
+      },
+      "GATE": {
+        "cases": 3150,
+        "input_only_case_ids_reconstructed": 3150,
+        "masks_binary_onehot_exact": true,
+        "sampled_static_dependency_hashes_verified": 150,
+        "sampled_static_formula_records": 150,
+        "sequence_array": {
+          "max_absolute_difference": 0.0,
+          "max_scaled_tolerance_fraction": 0.0,
+          "mismatched_elements": 0,
+          "worst_index": [
+            0,
+            0,
+            0
+          ]
+        },
+        "sequences_verified": 3150,
+        "static_array": {
+          "max_absolute_difference": 0.0,
+          "max_scaled_tolerance_fraction": 0.0,
+          "mismatched_elements": 0,
+          "worst_index": [
+            0,
+            0
+          ]
+        },
+        "static_record_hashes_verified": 3150,
+        "unique_stock_date_groups": 50
+      },
+      "TEST": {
+        "cases": 6300,
+        "input_only_case_ids_reconstructed": 6300,
+        "masks_binary_onehot_exact": true,
+        "sampled_static_dependency_hashes_verified": 300,
+        "sampled_static_formula_records": 300,
+        "sequence_array": {
+          "max_absolute_difference": 0.0,
+          "max_scaled_tolerance_fraction": 0.0,
+          "mismatched_elements": 0,
+          "worst_index": [
+            0,
+            0,
+            0
+          ]
+        },
+        "sequences_verified": 6300,
+        "static_array": {
+          "max_absolute_difference": 0.0,
+          "max_scaled_tolerance_fraction": 0.0,
+          "mismatched_elements": 0,
+          "worst_index": [
+            0,
+            0
+          ]
+        },
+        "static_record_hashes_verified": 6300,
+        "unique_stock_date_groups": 100
+      },
+      "TRAIN": {
+        "cases": 18900,
+        "input_only_case_ids_reconstructed": 18900,
+        "masks_binary_onehot_exact": true,
+        "sampled_static_dependency_hashes_verified": 900,
+        "sampled_static_formula_records": 900,
+        "sequence_array": {
+          "max_absolute_difference": 0.0,
+          "max_scaled_tolerance_fraction": 0.0,
+          "mismatched_elements": 0,
+          "worst_index": [
+            0,
+            0,
+            0
+          ]
+        },
+        "sequences_verified": 18900,
+        "static_array": {
+          "max_absolute_difference": 0.0,
+          "max_scaled_tolerance_fraction": 0.0,
+          "mismatched_elements": 0,
+          "worst_index": [
+            0,
+            0
+          ]
+        },
+        "static_record_hashes_verified": 18900,
+        "unique_stock_date_groups": 300
+      },
+      "TUNE": {
+        "cases": 3150,
+        "input_only_case_ids_reconstructed": 3150,
+        "masks_binary_onehot_exact": true,
+        "sampled_static_dependency_hashes_verified": 150,
+        "sampled_static_formula_records": 150,
+        "sequence_array": {
+          "max_absolute_difference": 0.0,
+          "max_scaled_tolerance_fraction": 0.0,
+          "mismatched_elements": 0,
+          "worst_index": [
+            0,
+            0,
+            0
+          ]
+        },
+        "sequences_verified": 3150,
+        "static_array": {
+          "max_absolute_difference": 0.0,
+          "max_scaled_tolerance_fraction": 0.0,
+          "mismatched_elements": 0,
+          "worst_index": [
+            0,
+            0
+          ]
+        },
+        "static_record_hashes_verified": 3150,
+        "unique_stock_date_groups": 50
+      }
+    },
+    "sequence_cases_verified": 34650,
+    "sequence_time_positions_verified": 2079000,
+    "source_bar_count": 216450,
+    "source_data_id": "3cfb8bf69371ffc771f67123fd0f2c42d67d1d763349e4fa58ff8ccde3793923",
+    "status": "pass",
+    "tolerances": {
+      "normalized_float32": {
+        "atol": 2e-06,
+        "rtol": 2e-06
+      },
+      "sampled_static_float64": {
+        "atol": 1e-09,
+        "rtol": 1e-11
+      },
+      "train_float64_statistics": {
+        "atol": 1e-09,
+        "rtol": 1e-11
+      }
+    }
+  },
+  "jev_spend_usd": 0,
+  "new_jev_calls": 0,
+  "public_audit_id": "f06628b3d92f2497bce77aa21099e8eff9ab0f693049a747a96fb734badb5b57",
+  "raw_bars_features_targets_and_probability_rows_published": false,
+  "results": {
+    "CPU_reference": "lr-001",
+    "TEST_cases_per_candidate": 6300,
+    "TEST_reselection": false,
+    "audit_id": "a5d253a14298db4cfde7e650ba9ff6d71a1153cb722f979794fef2928268a42c",
+    "claims": {
+      "automatic_production_promotion": false,
+      "improvement_supported": false,
+      "observed_selective_target_met": false
+    },
+    "fixed_model_inference_rows": 157500,
+    "gate": {
+      "coverage": 0.0,
+      "enabled": false,
+      "qualifying_thresholds": 0,
+      "selected_TEST_cases": 0,
+      "selected_accuracy": null,
+      "threshold": null
+    },
+    "limitations": [
+      "Earlier-stage probability vectors are not persisted: TUNE outputs were replayed against all candidate summaries and retained checkpoint NLL; CAL and GATE were replayed against their complete saved scores and threshold curve.",
+      "Epochs without an improved checkpoint retain sealed history but no weights, so their NLL histories can be checked for selection/budget consistency rather than independently replayed.",
+      "Source and numerical input audits remain hash-bound and passed; this replay does not redo every raw-to-feature computation.",
+      "Content seals prove current file consistency, not authenticated historical provider delivery or absence of prior human outcome access.",
+      "Historical bar-end availability, raw corporate-action treatment, selected five stocks and correlated overlapping targets remain limitations; no profitability or prospective transfer claim.",
+      "Failed GATE and intervals spanning no improvement prohibit an 80 percent or promotion claim."
+    ],
+    "max_numeric_differences": {
+      "calibration": 0.0,
+      "checkpoint_nll": 2.220446049250313e-16,
+      "independent_cpu_replay": 0.0,
+      "intervals": 8.673617379884035e-19,
+      "metrics": 2.220446049250313e-16,
+      "probability_replay": 0.0
+    },
+    "models_fitted": false,
+    "provider_calls": 0,
+    "report_id": "20dd12da07716f1878e798fd008cece8558f851a9fe809b583b26fadf4783129",
+    "retained_checkpoints_verified": 9,
+    "retuning": false,
+    "saved_TEST_probability_rows_verified": 81900,
+    "seed_results": [
+      {
+        "best_epoch": 5,
+        "candidate_key": "tcn-32",
+        "elapsed_seconds": 69.35807712499809,
+        "eligible": true,
+        "epochs_completed": 9,
+        "optimizer_updates": 666,
+        "seed": 42,
+        "status": "early_stopped"
+      },
+      {
+        "best_epoch": 1,
+        "candidate_key": "tcn-32",
+        "elapsed_seconds": 42.71353449999879,
+        "eligible": true,
+        "epochs_completed": 5,
+        "optimizer_updates": 370,
+        "seed": 43,
+        "status": "early_stopped"
+      },
+      {
+        "best_epoch": 1,
+        "candidate_key": "tcn-32",
+        "elapsed_seconds": 42.22830883399729,
+        "eligible": true,
+        "epochs_completed": 5,
+        "optimizer_updates": 370,
+        "seed": 44,
+        "status": "early_stopped"
+      },
+      {
+        "best_epoch": 1,
+        "candidate_key": "lstm-64",
+        "elapsed_seconds": 21.472383250002167,
+        "eligible": true,
+        "epochs_completed": 5,
+        "optimizer_updates": 370,
+        "seed": 42,
+        "status": "early_stopped"
+      },
+      {
+        "best_epoch": 1,
+        "candidate_key": "lstm-64",
+        "elapsed_seconds": 21.31098304099578,
+        "eligible": true,
+        "epochs_completed": 5,
+        "optimizer_updates": 370,
+        "seed": 43,
+        "status": "early_stopped"
+      },
+      {
+        "best_epoch": 1,
+        "candidate_key": "lstm-64",
+        "elapsed_seconds": 20.483521249996556,
+        "eligible": true,
+        "epochs_completed": 5,
+        "optimizer_updates": 370,
+        "seed": 44,
+        "status": "early_stopped"
+      }
+    ],
+    "selected_candidate": "lstm-64",
+    "selection_id": "55c74887a209de614cb183b89c6318d3f2d682291d0f0b2312bd3aab9518e02e",
+    "stage_counts": {
+      "CAL": 3150,
+      "GATE": 3150,
+      "TEST": 6300,
+      "TRAIN": 18900,
+      "TUNE": 3150
+    },
+    "stage_session_counts": {
+      "CAL": 10,
+      "GATE": 10,
+      "TEST": 20,
+      "TRAIN": 60,
+      "TUNE": 10
+    },
+    "status": "pass",
+    "temperature": 1.1095694720678453,
+    "unique_eligible_cases": 34650,
+    "weights_changed": false
+  },
+  "schema_version": "supervised-public-independent-audit-v1",
+  "source": {
+    "audit_id": "968bfa63fe4e501bf1a9cfa370cf0236c54238a29b483f9ee7e58ccf680364f5",
+    "availability": "historical bar-end assumption; not observed live receipt",
+    "limitations": [
+      "offline audit cannot authenticate provider delivery independently",
+      "raw prices and corporate actions",
+      "selected surviving stocks",
+      "historical availability assumption",
+      "current corpus does not prove arbitrary future regime transfer"
+    ],
+    "merged_bar_bytes": 58201111,
+    "parent_raw_rows": [
+      248179,
+      207356
+    ],
+    "raw_pages_verified": 46,
+    "raw_rows": 455535,
+    "registration_id": "3ac13c643a6e22018273fd6abc2d43cd2a239b68a7ae00ce61ceabd87a26601d",
+    "regular_rows": 216450,
+    "regular_sessions_including_primer": 111,
+    "role_cases": {
+      "CAL": 3150,
+      "GATE": 3150,
+      "TEST": 6300,
+      "TRAIN": 18900,
+      "TUNE": 3150
+    },
+    "source_data_id": "3cfb8bf69371ffc771f67123fd0f2c42d67d1d763349e4fa58ff8ccde3793923",
+    "timestamp_exclusions": 0
+  },
+  "status": "pass"
+}
