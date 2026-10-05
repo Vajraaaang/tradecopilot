@@ -138,12 +138,63 @@ def registration():
             "batch_size": 256,
             "class_order": list(LABELS),
         },
-        "uncertainty": {"bootstrap_resamples": 1000, "seed": 42, "block_sensitivity_days": 5},
+        "uncertainty": {
+            "unit": "wholesessiondatewithallsymbolcases",
+            "bootstrap_resamples": 1000,
+            "seed": 42,
+            "block_sensitivity_days": 5,
+        },
         "gate_requirements": dict(GATE_REQUIREMENTS),
         "selection": {"production_promotion": False},
         "constraints": {"new_jev_calls": 0, "broker_orders": 0, "no_test_retuning": True},
     }
     return {**reg, "registration_id": content_hash(reg)}
+
+
+def test_registration_accepts_exact_full_frozen_public_fixture():
+    import json
+
+    from tradecopilot.forecast.supervised_study import _registration
+
+    path = Path(__file__).parent / "fixtures" / "supervised_registration.json"
+    expected = json.loads(path.read_text())
+    assert expected["registration_id"] == "3ac13c643a6e22018273fd6abc2d43cd2a239b68a7ae00ce61ceabd87a26601d"
+    assert expected["uncertainty"] == {
+        "unit": "wholesessiondatewithallsymbolcases",
+        "bootstrap_resamples": 1000,
+        "seed": 42,
+        "block_sensitivity_days": 5,
+    }
+    assert _registration(path) == expected
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"unit": None},
+        {"unit": "individual_cases"},
+        {"bootstrap_resamples": 500},
+        {"seed": 43},
+        {"block_sensitivity_days": 10},
+        {"unknown_contract_field": True},
+    ],
+)
+def test_registration_rejects_resealed_deviations_from_full_uncertainty_contract(tmp_path, changes):
+    import json
+
+    from tradecopilot.forecast.contracts import content_hash
+    from tradecopilot.forecast.supervised_study import _registration
+
+    path = Path(__file__).parent / "fixtures" / "supervised_registration.json"
+    reg = json.loads(path.read_text())
+    reg["uncertainty"].update(changes)
+    if changes.get("unit", "present") is None:
+        del reg["uncertainty"]["unit"]
+    reg["registration_id"] = content_hash({key: value for key, value in reg.items() if key != "registration_id"})
+    modified = tmp_path / "registration.json"
+    modified.write_text(json.dumps(reg))
+    with pytest.raises(ValueError, match="unregistered supervised study design"):
+        _registration(modified)
 
 
 def seed_result(tmp_path, reg, manifest, source):
@@ -411,7 +462,7 @@ def mock_study(tmp_path, monkeypatch, *, changed_role=None, failed_seed=None, co
         "forecast_config": reg["forecast_config"],
         "config_id": ForecastConfig.model_validate(reg["forecast_config"]).config_id,
         "source_data_id": "synthetic-control-flow-source",
-        "source_manifest": {"fixture": True},
+        "source_manifest": {"source_metadata": {"fixture": True}},
         "normalizers": normalizers,
         "normalizer_id": content_hash(normalizers),
         "class_order": list(LABELS),
@@ -598,6 +649,34 @@ def test_study_freezes_full_selection_before_test_and_never_refits(tmp_path, mon
     assert (report_path.parent.stat().st_mode & 0o077) == 0
     with pytest.raises(FileExistsError):
         run_supervised_study(prepared, reg, report_path.parent)
+
+
+@pytest.mark.parametrize(
+    ("source_manifest", "expected_kind"),
+    [
+        ({"source_metadata": {"fixture": True}}, "synthetic_control_flow"),
+        ({"source_metadata": {"fixture": False}}, "historical_project_holdout"),
+        ({"source_metadata": {}}, "historical_project_holdout"),
+        ({"source_metadata": {"fixture": False}, "fixture": True}, "synthetic_control_flow"),
+        ({"fixture": True}, "synthetic_control_flow"),
+    ],
+)
+def test_evaluation_kind_honors_actual_nested_fixture_marker_and_legacy_marker(
+    tmp_path, monkeypatch, source_manifest, expected_kind
+):
+    import json
+
+    from tradecopilot.forecast import supervised_study as study
+    from tradecopilot.forecast.contracts import content_hash
+
+    prepared, reg, _, _, manifest = mock_study(tmp_path, monkeypatch)
+    manifest["source_manifest"] = source_manifest
+    manifest["prepared_data_id"] = content_hash(
+        {key: value for key, value in manifest.items() if key != "prepared_data_id"}
+    )
+    (prepared / "manifest.json").write_text(json.dumps(manifest))
+    report = study.load_report(study.run_supervised_study(prepared, reg, tmp_path / "study"))
+    assert report["evaluation_kind"] == expected_kind
 
 
 @pytest.mark.parametrize("role", ["CAL", "GATE", "TEST"])

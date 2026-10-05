@@ -518,7 +518,13 @@ def _registration(path: Path) -> dict[str, Any]:
         or [c["key"] for c in reg.get("cpu_candidates", [])] != ["prior", "lr-001", "lr-1", "hgb-31"]
         or [c["key"] for c in reg.get("neural_candidates", [])] != ["tcn-32", "lstm-64"]
         or reg.get("gate_requirements") != GATE_REQUIREMENTS
-        or reg.get("uncertainty") != {"bootstrap_resamples": 1000, "seed": 42, "block_sensitivity_days": 5}
+        or reg.get("uncertainty")
+        != {
+            "unit": "wholesessiondatewithallsymbolcases",
+            "bootstrap_resamples": 1000,
+            "seed": 42,
+            "block_sensitivity_days": 5,
+        }
         or reg.get("selection", {}).get("production_promotion") is not False
         or any(reg.get("constraints", {}).get(key) != 0 for key in ("new_jev_calls", "broker_orders"))
         or reg.get("constraints", {}).get("no_test_retuning") is not True
@@ -1132,7 +1138,10 @@ def run_supervised_study(prepared: Path, registration_path: Path, output_dir: Pa
             "evidence_mode": "historical_project_holdout",
             "evaluation_kind": "historical_project_holdout"
             if all(row.provenance == "historical" for row in train.examples)
-            and not manifest["source_manifest"].get("fixture")
+            and not (
+                manifest["source_manifest"].get("source_metadata", {}).get("fixture")
+                or manifest["source_manifest"].get("fixture")
+            )
             else "synthetic_control_flow",
             "registration_id": reg["registration_id"],
             "prepared_data_id": manifest["prepared_data_id"],

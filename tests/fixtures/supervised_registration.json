@@ -1,0 +1,237 @@
+{
+  "schema_version": "supervised-forecast-registration-v1",
+  "created_at": "2026-10-04T23:58:54.027703+00:00",
+  "experiment_type": "DIRECT_SUPERVISED_FORECAST",
+  "evidence_mode": "historical_project_holdout",
+  "symbols": [
+    "AAPL",
+    "AMZN",
+    "MSFT",
+    "NVDA",
+    "TSLA"
+  ],
+  "source_range": {
+    "start": "2025-01-02",
+    "end_exclusive": "2025-06-13",
+    "provider": "Alpaca",
+    "feed": "sip",
+    "adjustment": "raw"
+  },
+  "source_parts": [
+    [
+      "2025-01-02",
+      "2025-04-02"
+    ],
+    [
+      "2025-04-02",
+      "2025-06-13"
+    ]
+  ],
+  "retired_ranges": [
+    [
+      "2025-06-30",
+      "2025-10-23"
+    ],
+    [
+      "2025-11-03",
+      "2026-03-31"
+    ],
+    [
+      "2026-04-20",
+      "2026-10-01"
+    ]
+  ],
+  "forecast_config": {
+    "schema_version": "forecast-config-v1",
+    "symbols": [
+      "AAPL",
+      "AMZN",
+      "MSFT",
+      "NVDA",
+      "TSLA"
+    ],
+    "horizon_minutes": 15,
+    "lookback_minutes": 5,
+    "anchor_seconds": 60,
+    "flat_threshold_bps": 10.0,
+    "max_source_age_seconds": 0.0,
+    "max_outcome_delay_seconds": 0,
+    "min_history_points": 6,
+    "max_history_gap_seconds": 60,
+    "abstention_threshold": 0.6,
+    "seed": 42
+  },
+  "splits": {
+    "train": [
+      "2025-01-03",
+      "2025-04-01"
+    ],
+    "tune": [
+      "2025-04-02",
+      "2025-04-15"
+    ],
+    "calibration": [
+      "2025-04-16",
+      "2025-04-30"
+    ],
+    "gate": [
+      "2025-05-01",
+      "2025-05-14"
+    ],
+    "test": [
+      "2025-05-15",
+      "2025-06-12"
+    ]
+  },
+  "representation": {
+    "version": "causal-supervised-sequence-v1",
+    "warmup_minutes": 61,
+    "anchor_stride_minutes": 5,
+    "anchor_phase": "session_open+61+5*k minutes",
+    "sequence_length": 60,
+    "sequence_predecessor": true,
+    "sequence_channels": [
+      "open_bps_from_prewindow_close",
+      "high_bps_from_prewindow_close",
+      "low_bps_from_prewindow_close",
+      "close_bps_from_prewindow_close",
+      "log1p_volume",
+      "one_minute_close_return_bps"
+    ],
+    "sequence_reference": "completed close at as_of-60minutes; fixed across60inputbars",
+    "static_raw_features": 55,
+    "static_neural_dimensions": 115,
+    "static_cpu_dimensions": 60,
+    "eligibility": "61contiguoussame-sessioncompletedbarsavailablebyas_of; exacttargetminutecloseat+15mwithinregularsession; freezeallcatalogexclusionsbeforemodelquality; nointerpolation orcandidate-specificdrops",
+    "normalization": "fitsequence6means/scalespoolTRAINwindowtimepositionsonly; fitstaticcontinuous55TRAINcasesonly; preservebinarywindowflags/masks/onehots",
+    "target": "exactminute-barcloseproxyreturnDOWN<-10bps,FLATinclusive\u00b110bps,UP>10bps"
+  },
+  "cpu_candidates": [
+    {
+      "key": "prior",
+      "kind": "training_class_prior"
+    },
+    {
+      "key": "lr-001",
+      "kind": "ohlcv_logistic",
+      "C": 0.01
+    },
+    {
+      "key": "lr-1",
+      "kind": "ohlcv_logistic",
+      "C": 1.0
+    },
+    {
+      "key": "hgb-31",
+      "kind": "ohlcv_hist_gradient_boosting",
+      "learning_rate": 0.05,
+      "max_iter": 100,
+      "max_leaf_nodes": 31,
+      "max_depth": 6,
+      "min_samples_leaf": 100,
+      "l2_regularization": 10.0,
+      "early_stopping": false,
+      "class_weight": null,
+      "seed": 42
+    }
+  ],
+  "neural_candidates": [
+    {
+      "key": "tcn-32",
+      "kind": "tcn",
+      "input_channels": 6,
+      "width": 32,
+      "kernel_size": 3,
+      "dilations": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ],
+      "convolutions_per_block": 1,
+      "input_projection": true,
+      "causal_left_padding": true,
+      "static_dim": 115,
+      "head_hidden": 32,
+      "dropout": 0.1,
+      "readout": "last_timestep"
+    },
+    {
+      "key": "lstm-64",
+      "kind": "lstm",
+      "input_channels": 6,
+      "hidden_size": 64,
+      "n_lstm_layers": 1,
+      "bidirectional": false,
+      "batch_first": true,
+      "static_dim": 115,
+      "head_hidden": 32,
+      "dropout": 0.1,
+      "lstm_dropout": 0.0,
+      "readout": "last_hidden",
+      "state_reset": "eachindependentwindow"
+    }
+  ],
+  "neural_training": {
+    "seeds": [
+      42,
+      43,
+      44
+    ],
+    "device": "cpu",
+    "intraop_threads": 1,
+    "batch_size": 256,
+    "max_epochs": 20,
+    "max_seconds_per_seed": 600,
+    "optimizer": "AdamW",
+    "learning_rate": 0.001,
+    "weight_decay": 0.0001,
+    "gradient_clip_norm": 1.0,
+    "loss": "unweighted_cross_entropy",
+    "shuffle": "TRAINonly; separatefixedgeneratorperseed soarchitecturesseeidenticalbatchorders",
+    "drop_last": false,
+    "num_workers": 0,
+    "checkpoint_rule": "lowestcompleteTUNEmeanNLL; improvement>1e-4,patience4,earliesttie; noTRAIN+TUNErefit",
+    "incomplete_seed": "familyineligible; nopartialensemble",
+    "maximum_optimizer_updates": "20*ceil(N_train/256)",
+    "class_order": [
+      "DOWN",
+      "FLAT",
+      "UP"
+    ]
+  },
+  "selection": {
+    "primary_unit": "arithmeticmeanprobabilitiesofall3seeds perneuralfamily; CPUsinglemodel",
+    "winner": "minimumTUNElogloss ofregisteredcandidateprimaryprobabilities, fixedcandidatelistorderforties",
+    "reference_control": "bestCPUarmonTUNE, fixedbeforeTEST",
+    "weights_fit": "TRAINonly; checkpointsTUNEselected; norefittingonCAL/GATE/TEST",
+    "calibration": "fitone81-gridtemperature0.25..4 onchosenprimaryCALprobabilities",
+    "gate": "existing13thresholdgrid0.35..0.95; highestqualifyingGATEcoverage,tielowerthreshold; noqualifier->allabstain",
+    "test_release": "onlyafterfamily/seed/checkpoint/normalizer/temperature/gate/reference hashesfrozen",
+    "forecast_improvement": "lowerTESTlogloss thanTUNE-selectedCPUcontrol, positivepaired95date-bootstrapbound forcontrol_loss-model_loss; predeclared5-dateblock sensitivityreported",
+    "target_met": "GATEandTESTbothmeet80%selectedaccuracy,10%coverage,100selected,5sessions,>=30UPandDOWNpredictionswith>=80%precisioneach",
+    "production_promotion": false
+  },
+  "gate_requirements": {
+    "target_accuracy": 0.8,
+    "minimum_coverage": 0.1,
+    "minimum_selected": 100,
+    "minimum_direction_count": 30,
+    "minimum_selected_sessions": 5
+  },
+  "uncertainty": {
+    "unit": "wholesessiondatewithallsymbolcases",
+    "bootstrap_resamples": 1000,
+    "seed": 42,
+    "block_sensitivity_days": 5
+  },
+  "constraints": {
+    "new_jev_calls": 0,
+    "broker_orders": 0,
+    "no_test_retuning": true,
+    "no_default_model_change": true,
+    "auxiliary_jev_fusion": "existingJuly-Octcacheonly; separatelylabeledexploratoryconsumeddates; cannotselectnewheldoutmodelorclaimconfirmation"
+  },
+  "registration_id": "3ac13c643a6e22018273fd6abc2d43cd2a239b68a7ae00ce61ceabd87a26601d"
+}
