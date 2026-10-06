@@ -150,6 +150,8 @@ def attach_outcomes(
         outcomes = [lookup.get((row["symbol"], t)) for t in future]
         if any(b is None for b in outcomes):
             row["outcome_status"] = "pending_missing_exact_candles"
+            row["actual_close"] = None
+            row.pop("outcomes_received_at", None)
         else:
             row["actual_close"] = [float(b.close) for b in outcomes if b is not None]
             row["outcome_status"] = "observed"

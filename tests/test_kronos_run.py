@@ -1,9 +1,11 @@
 from datetime import UTC, datetime, timedelta
 
 import numpy as np
+import pytest
 
 
-def test_study_predicts_input_only_then_scores_and_records_pending_without_overwriting(tmp_path):
+@pytest.mark.parametrize("scenario", ("history", "invalid_control", "stale_prospective"))
+def test_study_predicts_input_only_then_scores_and_records_pending_without_overwriting(tmp_path, monkeypatch, scenario):
     from tradecopilot.forecast.bars import HistoricalBar, write_bar_dataset
     from tradecopilot.forecast.kronos_report import load_report
     from tradecopilot.forecast.kronos_run import run_pilot
@@ -13,6 +15,8 @@ def test_study_predicts_input_only_then_scores_and_records_pending_without_overw
         start = datetime(2026, 10, d, 13, 30, tzinfo=UTC)
         for i in range(390):
             p = 100 + i / 100
+            if scenario == "invalid_control" and i >= 56:
+                p = 20
             bars.append(
                 HistoricalBar(
                     symbol="AAPL",
@@ -36,6 +40,18 @@ def test_study_predicts_input_only_then_scores_and_records_pending_without_overw
         "clock": {"is_open": False, "next_open": "2090-10-02T13:30:00+00:00", "timestamp": "2026-10-06T20:00:00+00:00"},
     }
     write_bar_dataset(tmp_path / "bars", bars, meta)
+    if scenario == "stale_prospective":
+        import tradecopilot.forecast.kronos_run as module
+
+        meta["clock"]["is_open"] = True
+        write_bar_dataset(tmp_path / "stale-bars", bars, meta)
+
+        class Clock:
+            @staticmethod
+            def now(zone):
+                return datetime(2026, 10, 6, 20, 5, tzinfo=UTC)
+
+        monkeypatch.setattr(module, "datetime", Clock)
     calls = []
 
     class FakeEngine:
@@ -50,12 +66,12 @@ def test_study_predicts_input_only_then_scores_and_records_pending_without_overw
             return paths
 
     path = run_pilot(
-        tmp_path / "bars",
+        tmp_path / ("stale-bars" if scenario == "stale_prospective" else "bars"),
         tmp_path / "cache",
         tmp_path / "run",
         samples=20,
         engine_factory=FakeEngine,
-        prospective=False,
+        prospective=scenario == "stale_prospective",
     )
     report = load_report(path)
     assert report["evidence_mode"] == "synthetic_contract_fixture"
@@ -64,3 +80,10 @@ def test_study_predicts_input_only_then_scores_and_records_pending_without_overw
     assert all(m["metrics"]["eligible"] == 20 for m in report["models"].values())
     assert all(c["group"] == "historical" for c in report["cases"])
     assert report["broker_orders"] == report["jev_calls"] == 0
+    if scenario == "invalid_control":
+        assert report["models"]["persistence"]["metrics"]["scored"] == 20
+        assert report["models"]["momentum"]["metrics"]["errors"] == 4
+        assert len(report["models"]["momentum"]["failures"]) == 4
+    if scenario == "stale_prospective":
+        assert report["prospective_unavailable"] == [{"symbol": "AAPL", "reason": "intraday context is stale"}]
+    assert report["protocol"]["implementation"]["source_sha256"]

@@ -131,9 +131,13 @@ def build_cases(
     return tuple(cases), catalog
 
 
-def baseline_paths(history: Sequence[HistoricalBar], horizon: int) -> dict[str, NDArray[np.float64]]:
+def baseline_paths(
+    history: Sequence[HistoricalBar], horizon: int, *, control: str | None = None,
+) -> dict[str, NDArray[np.float64]]:
     if len(history) < 6 or isinstance(horizon, bool) or not isinstance(horizon, int) or not 1 <= horizon <= 60:
         raise ValueError("baseline requires six past bars and a bounded horizon")
+    if control not in (None, "persistence", "momentum"):
+        raise ValueError("unknown price control")
     prices = [float(b.close) for b in history]
     anchor = prices[-1]
     slope = (prices[-1] - prices[-6]) / 5
@@ -142,6 +146,8 @@ def baseline_paths(history: Sequence[HistoricalBar], horizon: int) -> dict[str, 
         ("persistence", np.full(horizon, anchor)),
         ("momentum", anchor + slope * np.arange(1, horizon + 1)),
     ):
+        if control is not None and name != control:
+            continue
         if (closes <= 0).any() or not np.isfinite(closes).all():
             raise ValueError("nonphysical momentum prediction")
         path = np.zeros((1, horizon, 6), dtype=np.float64)

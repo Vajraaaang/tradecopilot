@@ -75,6 +75,11 @@ def test_future_outcome_join_retains_original_forecast_and_requires_observed_rec
     assert result["cases"][0]["actual_close"] == [101.0] * 15
     assert result["cases"][0]["forecasts"] == originals["cases"][0]["forecasts"]
     assert report == originals
+    incomplete = attach_outcomes(result, [], {"feed": "sip", "receipt_at": "2026-10-07T13:47:00+00:00"})
+    assert incomplete["cases"][0]["actual_close"] is None
+    assert "outcomes_received_at" not in incomplete["cases"][0]
+    assert incomplete["cases"][0]["outcome_status"] == "pending_missing_exact_candles"
+    assert result["cases"][0]["actual_close"] == [101.0] * 15
     late = report | {"published_at": "2026-10-07T13:46:00+00:00"}
     with pytest.raises(ValueError, match="publication"):
         attach_outcomes(late, bars, {"feed": "sip", "receipt_at": "2026-10-07T13:46:00+00:00"})

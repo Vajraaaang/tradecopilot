@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 import time
@@ -15,6 +16,7 @@ from numpy.typing import NDArray
 
 from tradecopilot.forecast.bars import load_bar_dataset
 from tradecopilot.forecast.contracts import content_hash
+from tradecopilot.forecast.experiment import source_provenance
 from tradecopilot.forecast.kronos_report import write_report
 from tradecopilot.forecast.kronos_study import baseline_paths, build_cases, future_grid, price_metrics
 
@@ -75,6 +77,8 @@ def run_pilot(
     cases, catalog = build_cases(bars, symbols, DATES)
     if not cases:
         raise ValueError("no complete cases in the fixed pilot")
+    implementation = source_provenance()
+    lock_path = Path(__file__).resolve().parents[3] / "uv.lock"
     protocol = {
         "schema_version": "kronos-pilot-protocol-v1",
         "registered_at": datetime.now(UTC).isoformat(),
@@ -93,12 +97,16 @@ def run_pilot(
         "evidence": "retrospective_development_pilot",
         "broker_orders": 0,
         "jev_calls": 0,
+        "prospectively_requested": prospective,
+        "implementation": implementation,
+        "dependency_lock_sha256": hashlib.sha256(lock_path.read_bytes()).hexdigest() if lock_path.is_file() else None,
     }
     protocol["protocol_id"] = content_hash(protocol)
     output_dir.parent.mkdir(parents=True, exist_ok=True)
     protocol_path = output_dir.parent / (output_dir.name + "-registration.json")
     with protocol_path.open("xb") as stream:
         stream.write(_encode(protocol))
+    protocol_path.chmod(0o600)
     rows: list[dict[str, Any]] = [
         {
             "case_id": c.case_id,
@@ -129,6 +137,7 @@ def run_pilot(
             progress_path.write_bytes(
                 _encode({"stage": "inference", "model": variant, "case": index + 1, "cases": len(cases)})
             )
+            progress_path.chmod(0o600)
             paths, reason = None, None
             t0 = time.monotonic()
             try:
@@ -160,19 +169,32 @@ def run_pilot(
         }
     for name in ("persistence", "momentum"):
         predictions[name] = {}
+        failures = []
         for index, c in enumerate(cases):
-            p = baseline_paths(c.history, 15)[name]
+            reason = None
+            try:
+                p = baseline_paths(c.history, 15, control=name)[name]
+            except ValueError as exc:
+                p = None
+                reason = type(exc).__name__
+                failures.append({"case_id": c.case_id, "error_type": reason})
             predictions[name][c.case_id] = p
-            rows[index]["forecasts"][name] = _forecast(p, 0)
+            rows[index]["forecasts"][name] = _forecast(p, 0, reason)
         models[name] = {
             "metadata": {"kind": "fixed_past_only_control"},
             "metrics": price_metrics(cases, predictions[name], sample_intervals=False),
+            "failures": failures,
         }
+    prospective_unavailable = []
     if prospective:
         recorded_at = datetime.now(UTC)
         for symbol in symbols:
             history = tuple(sorted((b for b in bars if b.symbol == symbol), key=lambda b: b.end_time)[-60:])
-            future, kind = future_grid(history, metadata["clock"], recorded_at)
+            try:
+                future, kind = future_grid(history, metadata["clock"], recorded_at)
+            except ValueError as exc:
+                prospective_unavailable.append({"symbol": symbol, "reason": str(exc)})
+                continue
             row = {
                 "case_id": content_hash({"history": [b.bar_id for b in history], "future": future}),
                 "group": "prospective",
@@ -200,6 +222,8 @@ def run_pilot(
                 except Exception as exc:
                     row["forecasts"][variant] = _forecast(None, time.monotonic() - t0, type(exc).__name__)
             rows.append(row)
+    if source_provenance() != implementation:
+        raise ValueError("implementation changed during inference")
     buffer = io.BytesIO()
     np.savez_compressed(buffer, **raw_paths)
     report = {
@@ -216,6 +240,7 @@ def run_pilot(
         "catalog_counts": {"planned": len(catalog), "eligible": len(cases), "excluded": len(catalog) - len(cases)},
         "models": models,
         "cases": rows,
+        "prospective_unavailable": prospective_unavailable,
         "broker_orders": 0,
         "jev_calls": 0,
         "limitations": [
