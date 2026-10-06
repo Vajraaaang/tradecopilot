@@ -100,9 +100,15 @@ def render(path: Path, output: Path) -> Path:
         ax.set_ylim(0, 100 if percent else max((h or 0 for h in heights), default=1) * 1.3 + 1)
         ax.set_ylabel("Percent; fixed +/-10 bps FLAT" if percent else "MAE / anchor price x 10,000")
         ax.spines[["top", "right"]].set_visible(False)
-    fig.suptitle("Kronos + Alpaca paper API: fixed 100-case development pilot", fontsize=15)
+    counts = summary["catalog_counts"]
+    stocks = len(summary["protocol"]["symbols"])
+    fig.suptitle(
+        "Kronos + Alpaca paper API: fixed development pilot\n"
+        f"{counts['planned']} planned / {counts['eligible']} eligible | {stocks} stock" + ("s" if stocks != 1 else ""),
+        fontsize=15,
+    )
     fig.supxlabel(
-        "October 1, 2, 5, 6, 2026 | Five stocks | 60 input candles -> 15 future candles\n"
+        ", ".join(summary["protocol"]["dates"]) + " | 60 input candles -> 15 future candles\n"
         "Descriptive pilot; no tuning, confidence interval, profitability or promotion claim.",
         fontsize=10,
     )

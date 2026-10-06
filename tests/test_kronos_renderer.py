@@ -13,7 +13,7 @@ def _renderer():
     return module
 
 
-def test_public_summary_contains_aggregates_and_never_market_rows(tmp_path):
+def test_public_summary_contains_aggregates_and_never_market_rows(tmp_path, monkeypatch):
     from tradecopilot.forecast.kronos_report import write_report
 
     metrics = {
@@ -45,6 +45,20 @@ def test_public_summary_contains_aggregates_and_never_market_rows(tmp_path):
     assert summary["models"]["mini"]["metrics"]["direction_accuracy_errors_as_incorrect"] == 0.5
     assert "123.456" not in str(summary) and "DO_NOT_COPY" not in str(summary)
     assert "cases" not in summary and "inventory" not in summary
+    monkeypatch.setenv("MPLCONFIGDIR", str(tmp_path / "mpl"))
+    figure = pytest.importorskip("matplotlib.figure")
+    titles = []
+    original = figure.Figure.suptitle
+
+    def capture(self, text, **kwargs):
+        titles.append(text)
+        return original(self, text, **kwargs)
+
+    monkeypatch.setattr(figure.Figure, "suptitle", capture)
+    _renderer().render(path, tmp_path / "public")
+    assert "2 planned / 2 eligible" in titles[0]
+    assert "1 stock" in titles[0] and "100-case" not in titles[0]
+    assert (tmp_path / "public" / "comparison.png").stat().st_size > 1000
     report["evidence_mode"] = "synthetic_contract_fixture"
     fixture = write_report(tmp_path / "fixture", report, {})
     with pytest.raises(ValueError, match="real"):
