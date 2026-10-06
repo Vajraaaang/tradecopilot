@@ -52,7 +52,7 @@ def test_future_outcome_join_retains_original_forecast_and_requires_observed_rec
             "mini": {"status": "ok", "generated_at": "2026-10-06T22:00:00+00:00", "mean_close": [100.0] * 15}
         },
     }
-    report = {"connection": {"feed": "sip"}, "cases": [row]}
+    report = {"connection": {"feed": "sip"}, "cases": [row], "published_at": "2026-10-06T22:01:00+00:00"}
     originals = copy.deepcopy(report)
     bars = [
         HistoricalBar(
@@ -75,3 +75,63 @@ def test_future_outcome_join_retains_original_forecast_and_requires_observed_rec
     assert result["cases"][0]["actual_close"] == [101.0] * 15
     assert result["cases"][0]["forecasts"] == originals["cases"][0]["forecasts"]
     assert report == originals
+    late = report | {"published_at": "2026-10-07T13:46:00+00:00"}
+    with pytest.raises(ValueError, match="publication"):
+        attach_outcomes(late, bars, {"feed": "sip", "receipt_at": "2026-10-07T13:46:00+00:00"})
+    missing = {k: v for k, v in report.items() if k != "published_at"}
+    with pytest.raises(ValueError, match="publication"):
+        attach_outcomes(missing, bars, {"feed": "sip", "receipt_at": "2026-10-07T13:46:00+00:00"})
+
+
+def test_publication_is_measured_and_expired_forecasts_never_form_a_bundle(tmp_path):
+    from datetime import UTC, datetime, timedelta
+
+    from tradecopilot.forecast.kronos_report import load_report, write_report
+
+    now = datetime.now(UTC)
+    row = {
+        "group": "prospective",
+        "future_times": [(now + timedelta(days=1)).isoformat()],
+        "forecasts": {"mini": {"status": "ok", "generated_at": now.isoformat()}},
+    }
+    report = {"cases": [row], "published_at": "2000-01-01T00:00:00+00:00"}
+    result = load_report(write_report(tmp_path / "fresh", report, {}))
+    assert now <= datetime.fromisoformat(result["published_at"]) < now + timedelta(days=1)
+    row["future_times"] = ["2000-01-01T00:00:00+00:00"]
+    row["forecasts"]["mini"]["generated_at"] = "1999-12-31T23:00:00+00:00"
+    with pytest.raises(ValueError, match="publication"):
+        write_report(tmp_path / "expired", report, {})
+    assert not (tmp_path / "expired").exists()
+
+
+def test_grading_preserves_original_publication_and_deadline_crossing_is_rejected(tmp_path, monkeypatch):
+    from datetime import UTC, datetime, timedelta
+
+    import tradecopilot.forecast.kronos_report as module
+
+    now = datetime.now(UTC)
+    target = now + timedelta(seconds=1)
+    report = {
+        "cases": [{"group": "prospective", "future_times": [target.isoformat()],
+                   "forecasts": {"mini": {"status": "ok", "generated_at": now.isoformat()}}}],
+    }
+    first = module.load_report(module.write_report(tmp_path / "first", report, {}))
+    reads = iter((target + timedelta(seconds=1),))
+
+    class Clock:
+        @staticmethod
+        def now(zone):
+            return next(reads)
+
+        fromisoformat = datetime.fromisoformat
+
+    monkeypatch.setattr(module, "datetime", Clock)
+    derived = module.load_report(module.write_report(
+        tmp_path / "graded", first | {"parent_report_id": first["report_id"]}, {},
+    ))
+    assert derived["published_at"] == first["published_at"]
+    assert derived["bundle_created_at"] > derived["published_at"]
+    reads = iter((now, now, target))
+    with pytest.raises(ValueError, match="publication"):
+        module.write_report(tmp_path / "crossed", report, {})
+    assert not (tmp_path / "crossed").exists()

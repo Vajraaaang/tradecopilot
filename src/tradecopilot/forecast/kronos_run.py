@@ -28,6 +28,8 @@ def _encode(value: Any) -> bytes:
 def _forecast(paths: NDArray[np.float64] | None, elapsed: float, error: str | None = None) -> dict[str, Any]:
     if paths is None:
         return {"status": "error", "error": error, "elapsed_seconds": elapsed}
+    from tradecopilot.forecast.kronos import KronosEngine
+
     close = paths[:, :, 3]
     return {
         "status": "ok",
@@ -37,6 +39,7 @@ def _forecast(paths: NDArray[np.float64] | None, elapsed: float, error: str | No
         "samples": len(paths),
         "intervals_calibrated": False,
         "elapsed_seconds": elapsed,
+        "diagnostics": KronosEngine.diagnostics(paths),
     }
 
 
@@ -150,6 +153,10 @@ def run_pilot(
             "elapsed_seconds": time.monotonic() - started,
             "failures": failures,
             "metrics": price_metrics(cases, predictions[variant], sample_intervals=True),
+            "diagnostics": {
+                key: sum(row["forecasts"][variant].get("diagnostics", {}).get(key, 0) for row in rows)
+                for key in ("paths", "rows", "nonphysical_ohlc_rows", "negative_volume_rows", "negative_amount_rows")
+            },
         }
     for name in ("persistence", "momentum"):
         predictions[name] = {}
@@ -175,6 +182,7 @@ def run_pilot(
                 "forecast_kind": kind,
                 "history_close": [float(b.close) for b in history],
                 "actual_close": None,
+                "outcome_status": "pending",
                 "forecasts": {},
             }
             for variant, engine in engines.items():

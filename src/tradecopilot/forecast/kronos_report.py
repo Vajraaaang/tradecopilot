@@ -6,7 +6,7 @@ import copy
 import hashlib
 import json
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
@@ -20,6 +20,24 @@ _MAX_BYTES = 256 * 1024 * 1024
 
 def _json(value: Any) -> bytes:
     return (json.dumps(value, indent=2, sort_keys=True, allow_nan=False) + "\n").encode()
+
+
+def _validate_publication(report: dict[str, Any], completed_at: datetime | None = None) -> None:
+    """Bind successful prospective paths to the original sealed bundle's publication."""
+    for row in report.get("cases", []):
+        if row["group"] != "prospective":
+            continue
+        for forecast in row["forecasts"].values():
+            if forecast["status"] != "ok":
+                continue
+            try:
+                published = utc(datetime.fromisoformat(report["published_at"]))
+                generated = utc(datetime.fromisoformat(forecast["generated_at"]))
+                target = utc(datetime.fromisoformat(row["future_times"][-1]))
+            except (KeyError, TypeError, ValueError, IndexError):
+                raise ValueError("prospective publication timestamps are required") from None
+            if generated > published or published >= target or (completed_at is not None and completed_at >= target):
+                raise ValueError("prospective publication must complete before the final target")
 
 
 def write_report(directory: Path, report: dict[str, Any], artifacts: dict[str, bytes]) -> Path:
@@ -38,9 +56,7 @@ def write_report(directory: Path, report: dict[str, Any], artifacts: dict[str, b
     }
     value = report | {"schema_version": SCHEMA, "inventory": inventory}
     value.pop("report_id", None)
-    value["report_id"] = content_hash(value)
-    report_bytes = _json(value)
-    if len(report_bytes) > _MAX_BYTES:
+    if len(_json(value)) > _MAX_BYTES:
         raise ValueError("report too large")
     directory.parent.mkdir(parents=True, exist_ok=True)
     with TemporaryDirectory(prefix=".kronos-report-", dir=directory.parent) as temp:
@@ -49,11 +65,29 @@ def write_report(directory: Path, report: dict[str, Any], artifacts: dict[str, b
         for name, body in artifacts.items():
             (stage / name).write_bytes(body)
             (stage / name).chmod(0o600)
+        publication = datetime.now(UTC)
+        value["bundle_created_at"] = publication.isoformat()
+        if not value.get("parent_report_id"):
+            value["published_at"] = publication.isoformat()
+        _validate_publication(value)
+        value["report_id"] = content_hash(value)
+        report_bytes = _json(value)
+        if len(report_bytes) > _MAX_BYTES:
+            raise ValueError("report too large")
         (stage / "report.json").write_bytes(report_bytes)
         (stage / "report.json").chmod(0o600)
         if directory.exists():
             raise FileExistsError("report bundles are immutable")
+        if not value.get("parent_report_id"):
+            _validate_publication(value, datetime.now(UTC))
         stage.rename(directory)
+        # A deadline crossed during the atomic rename must not leave an accepted record.
+        try:
+            if not value.get("parent_report_id"):
+                _validate_publication(value, datetime.now(UTC))
+        except ValueError:
+            directory.rename(stage)
+            raise
     return directory / "report.json"
 
 
@@ -87,6 +121,7 @@ def load_report(path: Path) -> dict[str, Any]:
             expected.add(name)
         if {p.name for p in path.parent.iterdir()} != expected:
             raise ValueError
+        _validate_publication(value)
         return value
     except (ValueError, OSError, TypeError, KeyError):
         raise ValueError("Kronos report integrity verification failed") from None
@@ -100,6 +135,7 @@ def attach_outcomes(
     """Join subsequently received exact candles without rewriting any forecast."""
     if source_metadata.get("feed") != report["connection"]["feed"]:
         raise ValueError("outcome feed must match the original forecast context")
+    _validate_publication(report)
     receipt = utc(datetime.fromisoformat(source_metadata["receipt_at"]))
     lookup = {(b.symbol, b.end_time): b for b in bars}
     if len(lookup) != len(bars):
@@ -111,9 +147,6 @@ def attach_outcomes(
         future = tuple(utc(datetime.fromisoformat(t)) for t in row["future_times"])
         if receipt < future[-1]:
             raise ValueError("outcome request was received before the final target")
-        for forecast in row["forecasts"].values():
-            if forecast["status"] == "ok" and utc(datetime.fromisoformat(forecast["generated_at"])) >= future[-1]:
-                raise ValueError("forecast was not published before its target")
         outcomes = [lookup.get((row["symbol"], t)) for t in future]
         if any(b is None for b in outcomes):
             row["outcome_status"] = "pending_missing_exact_candles"
