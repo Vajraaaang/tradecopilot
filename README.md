@@ -1,10 +1,10 @@
-# TradeCopilot — Jev forecasting and evaluation
+# TradeCopilot — Kronos + Alpaca forecasting research
 
-TradeCopilot combines a price-forecasting research pipeline with a deterministic
-terminal monitor and local visual desk for the Ross first-pullback momentum
-setup. The forecasting workflow records market observations, builds causal
-features, compares CPU baselines, and evaluates opt-in Jev forecasts against
-subsequently observed outcomes. It is analysis software: it never places,
+TradeCopilot uses Alpaca paper-account data access and pinned local Kronos
+models to forecast future candle paths, compare the same cases against simple
+controls, and join later observed outcomes. It also retains opt-in Jev, CPU,
+supervised neural and offline RL experiments, plus a deterministic terminal
+monitor and visual desk for the Ross first-pullback momentum setup. It is analysis software: it never places,
 previews, modifies, replaces, or cancels an order.
 
 [![Offline validation](https://github.com/Vajraaaang/tradecopilot/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Vajraaaang/tradecopilot/actions/workflows/ci.yml)
@@ -13,6 +13,7 @@ previews, modifies, replaces, or cancels an order.
 
 | Workflow | Purpose | Outputs |
 | --- | --- | --- |
+| Kronos + Alpaca paper | Predict candle paths using pinned local pretrained mini/small models | Individual paths, uncalibrated sample bands, same-case controls, immutable publication and later outcomes |
 | Jev market opinion | Interpret available intraday market context in the visual desk | BUY / HOLD / SELL / WAIT judgments, class probabilities, confidence, source time and usage |
 | Jev prospective forecast | Predict a defined future price direction before its target time | Persisted UP / FLAT / DOWN probabilities, abstention status, request provenance and later outcome labels |
 | Offline evaluation | Compare models on a chronological holdout without paid inference | CPU model artifacts, calibration and coverage diagnostics, quality metrics and verified report bundles |
@@ -23,14 +24,18 @@ previews, modifies, replaces, or cancels an order.
 The AI engineering work includes API integration, causal data preparation,
 baseline model training, evaluation, inference controls, reproducible artifacts,
 operational telemetry, and containerized execution. Jev is accessed through its
-hosted API. Local forecasting models include logistic regression, histogram
-boosting, and optional causal TCN/LSTM classifiers; the optional policy lab
+hosted API. Pinned local Kronos mini/small infer directly on validated OHLCV
+candles through a separate optional `kronos` extra. Other local models include
+logistic regression, histogram boosting, and optional causal TCN/LSTM classifiers; the optional policy lab
 compares feedforward and recurrent PPO in an offline simulator.
 
 ### Implemented components
 
 | Component | Implementation |
 | --- | --- |
+| Alpaca paper integration | Secure existing Keychain credentials, GET-only paper account/clock, separate stock data endpoint, explicit IEX/SIP feed, bounded pagination and completed-session validation |
+| Local foundation models | Pinned upstream Kronos code and safetensors, matching tokenizers, CPU inference, seeded individual paths and retained physical diagnostics |
+| Prospective candle forecasts | Original inference and publication times, deadline checks, exact later-candle joins in new reports and read-only mean/band/actual chart |
 | Typed inference | Pinned `jev-1.13.0`, structured choice responses, finite normalized probabilities, model/prompt versions, and label-free requests |
 | Inference controls | Shared persistent 100-attempt ledger, 30-second cooldown/cache, atomic per-run limits of 10 attempts and $0.05, conservative failed-call reservations, and zero automatic Jev retries |
 | Durable market data | Finnhub last-price observations in append-only SQLite, exact deduplication, provider and receipt timestamps, and restart-aware request pacing |
@@ -43,7 +48,7 @@ compares feedforward and recurrent PPO in an offline simulator.
 | Report application | Saved-result dashboard with model/class/symbol filters, prediction-versus-actual examples, provenance labels and integrity-backed health |
 | Delivery and testing | Python wheel/sdist, unprivileged Docker image, Compose, and GitHub Actions tests plus a container check with external networking disabled |
 
-### Forecast data flow
+### Jev forecast data flow
 
 ```mermaid
 flowchart LR
@@ -65,6 +70,27 @@ flowchart LR
 Jev receives only the original causal inputs. Outcome labels are joined after
 their target times. Dataset examples and predictions retain their original
 identities so the later labels cannot rewrite what was known at inference time.
+
+## Kronos + Alpaca paper workflow
+
+The [Kronos integration guide](docs/kronos-paper.md) documents the restored
+candle-forecasting pipeline, fixed four-session development protocol, model
+pins, timestamp/proxy semantics, secure paper connection and local commands.
+The fixed 100-case pilot scored 53% direction accuracy for mini and 54% for
+small, versus 52% for persistence and 35% for momentum. Persistence had lower
+price error than both Kronos models. Four sessions provide development evidence;
+no model is promoted. Five genuine next-session records await observed outcomes.
+
+![Kronos and Alpaca complete-cohort development comparison](docs/results/2026-10-06-kronos-paper/pilot/comparison.png)
+
+The [Legend-inspired research workspace](docs/kronos-paper.md) provides saved
+symbol, model and evidence selection, real forecast paths and a prospective
+queue. These screenshot values come from the actual saved report:
+
+![Actual Kronos research comparison widget](docs/results/2026-10-06-kronos-paper/pilot/dashboard-comparison.jpg)
+
+Independent scoring and four fresh CPU replays verified the saved paths.
+The original negative Jev, neural and RL studies below remain preserved.
 
 ## Real historical results
 
@@ -204,6 +230,8 @@ claim.
 
 ### Documentation and source map
 
+- [Kronos + Alpaca paper](docs/kronos-paper.md): local foundation-model inference,
+  fixed same-case controls, recorded future forecasts and later outcome joins.
 - [Forecasting guide](docs/forecasting.md): configuration, collection, labels,
   experiments, live pilots, Docker and evaluation limits.
 - [Real historical evaluation](docs/historical-evaluation.md): real source data,

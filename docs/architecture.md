@@ -6,7 +6,19 @@ contracts. The forecasting workflow has its own durable observation store and
 saved-report server; the original desk keeps its operational journal and live
 strategy state machine.
 
-## Forecasting architecture
+## Kronos paper-account forecasting
+
+The [Kronos workflow](kronos-paper.md) uses a separate optional local model
+engine over verified Alpaca minute candles. The paper endpoint supplies safe
+account/clock reads; the data endpoint supplies explicitly selected IEX/SIP
+candles. A frozen development cohort compares mini/small with persistence and
+past-only momentum. Inventory-sealed bundles contain raw individual paths,
+publication times, complete failure records and source/model identities. Later
+outcomes produce a new report referencing its parent. The shared read-only
+server loads the matching report validator and static viewer without loading
+weights or accessing credentials. No trading client or order operation is added.
+
+## Jev forecasting architecture
 
 ```mermaid
 flowchart TD
@@ -42,6 +54,11 @@ All paths below are relative to `src/tradecopilot/`.
 
 | Module | Responsibility |
 | --- | --- |
+| `forecast/paper.py` | Bounded GET-only paper account/clock and market-data collection with Keychain credentials and explicit feeds |
+| `forecast/kronos.py`, `_vendor/kronos/` | Hash-pinned local safetensors, licensed upstream source, causal OHLCV input validation and individual CPU forecast paths |
+| `forecast/kronos_study.py`, `forecast/kronos_run.py` | Fixed common cohorts, past-only controls, retained failures, raw diagnostics and prospective records |
+| `forecast/kronos_report.py` | Immutable inventory, original publication checks and source-specific later outcome joins |
+| `forecast/kronos_cli.py`, `forecast/kronos_dashboard.html` | Explicit fetch/pilot/grade/serve commands and read-only saved price-path inspection |
 | `forecast/contracts.py` | Frozen configuration, observation, example, dataset and prediction contracts; content identities and feature/label versions |
 | `forecast/sessions.py` | XNYS regular-session bounds, including holidays, early closes and DST |
 | `forecast/data.py` | SQLite WAL observations, prediction records, sanitized events and persistent atomic collection gate |

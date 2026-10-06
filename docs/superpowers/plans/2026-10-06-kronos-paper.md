@@ -18,25 +18,34 @@ Scope and defaults:
 
 Task 1 — paper account/data client
 Files: src/tradecopilot/forecast/paper.py; tests/test_forecast_paper.py; minimal HistoricalBar IEX source enum extension in forecast/bars.py.
-- [ ] Write failing tests for fixed paper/data hosts, GET-only calls, credential redaction, account validation, clock handling, paginated IEX/SIP candles, duplicates/order/interval/session/future-candle filtering, and HTTP failures.
-- [ ] Implement a small PaperSnapshot and asynchronous read-only snapshot function using Keychain credentials and bounded httpx calls.
-- [ ] Verify synthetic contracts and a root-run real account/clock/candle probe. Account/data proof contains no account ID, balances or credentials.
+- [x] Write failing tests for fixed paper/data hosts, GET-only calls, credential redaction, account validation, clock handling, paginated IEX/SIP candles, duplicates/order/interval/session/future-candle filtering, and HTTP failures.
+- [x] Implement a small PaperSnapshot and asynchronous read-only snapshot function using Keychain credentials and bounded httpx calls.
+- [x] Verify synthetic contracts and a root-run real account/clock/candle probe. Account/data proof contains no account ID, balances or credentials.
 
 Task 2 — pinned local Kronos engine
 Files: forecast/kronos.py; tests/test_forecast_kronos.py; pinned vendor source/manifest/license; explicit setup script.
-- [ ] Pin upstream source/checkpoint revisions and hashes. Inspect before execution; use safetensors only, local files for inference, no automatic provider access in offline tests.
-- [ ] Write failing tests for candle/timestamp input contract, matching tokenizer/model/context, deterministic seeded individual paths, missing optional dependencies, finite output shapes, provenance, and no outcome inputs.
-- [ ] Implement optional engine and setup command. Run one real inference for each checkpoint; record latency and output diagnostics before freezing development budget.
+- [x] Pin upstream source/checkpoint revisions and hashes. Inspect before execution; use safetensors only, local files for inference, no automatic provider access in offline tests.
+- [x] Write failing tests for candle/timestamp input contract, matching tokenizer/model/context, deterministic seeded individual paths, missing optional dependencies, finite output shapes, provenance, and no outcome inputs.
+- [x] Implement optional engine and setup command. Run one real inference for each checkpoint; record latency and output diagnostics before freezing development budget.
 
 Task 3 — bounded development study and paper forecast
 Files: forecast/kronos_study.py; CLI integration; focused tests.
-- [ ] Freeze input-only cases and settings; reuse validated candles; record every planned exclusion.
-- [ ] Run both models and controls without outcome fields entering inference. Score after predictions, report all cases/failures, preserve source/model/config identities.
-- [ ] Persist a genuinely prospective next-session record separately from historical scores; provide a later outcome-join command without overwriting original forecasts.
+- [x] Freeze input-only cases and settings; reuse validated candles; record every planned exclusion.
+- [x] Run both models and controls without outcome fields entering inference. Score after predictions, report all cases/failures, preserve source/model/config identities.
+- [x] Persist a genuinely prospective next-session record separately from historical scores; provide a later outcome-join command without overwriting original forecasts.
 
 Task 4 — report viewer and delivery
 Files: forecast/kronos_dashboard.html; narrow server/CLI integration; report/service tests; docs and derived charts.
-- [ ] Validate immutable report inventory; serve only exact read-only routes and generic errors.
-- [ ] Display paper-account mode/feed, historical vs pending prospective evidence, mean/sample band/actual price paths, all model/control metrics and failures.
-- [ ] Browser-check actual results; run focused and full regressions, Ruff/mypy, source review and independent numerical replay.
+- [x] Validate immutable report inventory; serve only exact read-only routes and generic errors.
+- [x] Display paper-account mode/feed, historical vs pending prospective evidence, mean/sample band/actual price paths, all model/control metrics and failures.
+- [x] Browser-check actual results; run focused and full regressions, Ruff/mypy, source review and independent numerical replay.
 - [ ] Publish only derived evidence and documentation with reproduction commands; keep licensed rows, checkpoints and credentials local. Verify hosted checks on the published commit.
+
+Task 5 — user-selected Legend visual refinement
+File ownership: forecast/kronos_dashboard.html only.
+- [x] Apply compact dark panels/toolbar, dominant chart, actual saved-symbol selection, queue/evidence inspector and responsive placement.
+- [x] Preserve all report semantics, source/as-of labels, honest denominators and unsupported-data boundaries.
+- [x] Independently review specification and code quality; verify actual browser interactions, screenshot and applicable keyboard/responsive behavior.
+- [ ] Update documentation and GitHub delivery with measured evidence and actual final UI.
+
+Delivery note: implementation, real inference, independent scoring/replays, final UI reviews, local browser proof and aggregate documentation are complete. Publication/check verification is recorded in the resulting pull request so checking CI does not mutate its own tested commit.

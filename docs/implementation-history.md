@@ -83,3 +83,18 @@ Its importer and comparison paths bring the local suite to 455 passing tests.
 Jev calibration on independent market data, multi-regime/prospective validation,
 transaction-cost-aware trading evaluation, and public production deployment
 remain uncompleted. They are not claimed as current accomplishments.
+
+## Kronos + Alpaca paper integration — October 6, 2026
+
+The [Kronos milestone](kronos-paper.md) restores the original candle-path
+forecasting direction. It adds secure GET-only paper account/clock access and
+explicit IEX/SIP data retrieval, a pinned licensed local Kronos adapter,
+individual CPU sample paths, a fixed same-case development study, prospective
+publication checks, later exact-candle grading, and a verified read-only viewer.
+Independent reviews exposed and repaired publication timing, error-denominator
+display, stale-context/control failure retention, and incomplete outcome-source
+regrading. The previous Jev, neural and RL results remain unchanged.
+
+No hosted Jev calls, fine-tuning, RL training or broker orders are part of this
+milestone. Executed connection/inference/results and validation evidence are
+recorded in the Kronos guide and its aggregate result assets.

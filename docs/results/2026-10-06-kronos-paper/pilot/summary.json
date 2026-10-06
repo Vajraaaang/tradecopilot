@@ -1,0 +1,422 @@
+{
+  "broker_orders": 0,
+  "catalog_counts": {
+    "eligible": 100,
+    "excluded": 0,
+    "planned": 100
+  },
+  "evidence_mode": "retrospective_development_pilot",
+  "feed": "sip",
+  "jev_calls": 0,
+  "limitations": [
+    "Four-session development pilot is not confirmation.",
+    "Raw sample bands are uncalibrated.",
+    "Historical availability is a bar-end assumption.",
+    "Kronos pretraining overlap is not ruled out.",
+    "No order policy or profitability claim."
+  ],
+  "models": {
+    "mini": {
+      "diagnostics": {
+        "negative_amount_rows": 0,
+        "negative_volume_rows": 1,
+        "nonphysical_ohlc_rows": 605,
+        "paths": 2000,
+        "rows": 30000
+      },
+      "elapsed_seconds": 59.443071417015744,
+      "metadata": {
+        "amount_policy": "derived_proxy: volume * mean(open,high,low,close); not provider dollar volume",
+        "dependencies": {
+          "einops": "0.8.1",
+          "huggingface-hub": "0.33.1",
+          "pandas": "3.0.5",
+          "safetensors": "0.6.2",
+          "torch": "2.14.1"
+        },
+        "device": "cpu",
+        "dtype": "float32",
+        "fine_tuned": false,
+        "model": {
+          "files": [
+            {
+              "bytes": 225,
+              "name": "config.json",
+              "sha256": "70daca2cb11e3a979dd6b8ac12ee08e2aace877acf28f5b8dfb4fe5609736201"
+            },
+            {
+              "bytes": 16440776,
+              "name": "model.safetensors",
+              "sha256": "a7d5f37e2e9fbd9891f7d7d4f72574512dd1f704fee14223e0a8cd0fbf54197c"
+            }
+          ],
+          "name": "Kronos-mini",
+          "repository": "NeoQuasar/Kronos-mini",
+          "revision": "f4e68697d9d5aed55cef5c96aabc3376bcad9f81"
+        },
+        "model_parameter_count": 4108032,
+        "sampler": {
+          "paths": "individual duplicated-input batch series",
+          "sample_count_per_series": 1,
+          "seed_policy": "one CPU seed per call",
+          "temperature": 1.0,
+          "top_k": 0,
+          "top_p": 0.9
+        },
+        "source": {
+          "commit": "67b630e67f6a18c9e9be918d9b4337c960db1e9a",
+          "files": {
+            "LICENSE": {
+              "bytes": 1062,
+              "name": "LICENSE",
+              "sha256": "acb2d194d378204e5f2be4dcd24d39ecac437903620c790c3315a96dab388fdc"
+            },
+            "kronos.py": {
+              "bytes": 30133,
+              "name": "kronos.py",
+              "sha256": "2960874d0487078a0900b588b340f9679ab3e804f5750c28ab9922eff5723fc1"
+            },
+            "module.py": {
+              "bytes": 23426,
+              "name": "module.py",
+              "sha256": "a07edbadc0e96804c8158c021bbc6063bb7cc43b34d7fc470d5c8ff2005a409f"
+            }
+          },
+          "license": "MIT",
+          "repository": "https://github.com/shiyu-coder/Kronos"
+        },
+        "threads": 1,
+        "tokenizer": {
+          "files": [
+            {
+              "bytes": 301,
+              "name": "config.json",
+              "sha256": "0b30a443affb03e05a876a083857de9164f899feb7b4d261da02c485c9a3e3b6"
+            },
+            {
+              "bytes": 15842376,
+              "name": "model.safetensors",
+              "sha256": "b97ec46b3b72160509e289183eaf7bdf5f0dac5bb9b49522f6d46638a99a8717"
+            }
+          ],
+          "name": "Kronos-Tokenizer-2k",
+          "repository": "NeoQuasar/Kronos-Tokenizer-2k",
+          "revision": "26966d0035065a0cae0ebad7af8ece35bc1fb51c"
+        },
+        "tokenizer_parameter_count": 3958042,
+        "variant": "mini"
+      },
+      "metrics": {
+        "class_order": [
+          "DOWN",
+          "FLAT",
+          "UP"
+        ],
+        "confusion_matrix": [
+          [
+            0,
+            16,
+            3
+          ],
+          [
+            0,
+            50,
+            2
+          ],
+          [
+            0,
+            26,
+            3
+          ]
+        ],
+        "direction_accuracy": 0.53,
+        "direction_accuracy_errors_as_incorrect": 0.53,
+        "eligible": 100,
+        "errors": 0,
+        "evidence": "retrospective_development_pilot; no confirmation or promotion",
+        "forecast_availability": 1.0,
+        "interval_nominal_mass": 0.8,
+        "intervals_calibrated": false,
+        "path_mae_bps": 10.901353200711291,
+        "raw_interval_coverage": 0.5073333333333333,
+        "scored": 100,
+        "terminal_mae_bps": 14.766380530880836,
+        "uncertainty_interval": null
+      }
+    },
+    "momentum": {
+      "diagnostics": null,
+      "elapsed_seconds": null,
+      "metadata": {},
+      "metrics": {
+        "class_order": [
+          "DOWN",
+          "FLAT",
+          "UP"
+        ],
+        "confusion_matrix": [
+          [
+            10,
+            2,
+            7
+          ],
+          [
+            25,
+            13,
+            14
+          ],
+          [
+            11,
+            6,
+            12
+          ]
+        ],
+        "direction_accuracy": 0.35,
+        "direction_accuracy_errors_as_incorrect": 0.35,
+        "eligible": 100,
+        "errors": 0,
+        "evidence": "retrospective_development_pilot; no confirmation or promotion",
+        "forecast_availability": 1.0,
+        "interval_nominal_mass": null,
+        "intervals_calibrated": false,
+        "path_mae_bps": 16.801802676956676,
+        "raw_interval_coverage": null,
+        "scored": 100,
+        "terminal_mae_bps": 28.488872425344756,
+        "uncertainty_interval": null
+      }
+    },
+    "persistence": {
+      "diagnostics": null,
+      "elapsed_seconds": null,
+      "metadata": {},
+      "metrics": {
+        "class_order": [
+          "DOWN",
+          "FLAT",
+          "UP"
+        ],
+        "confusion_matrix": [
+          [
+            0,
+            19,
+            0
+          ],
+          [
+            0,
+            52,
+            0
+          ],
+          [
+            0,
+            29,
+            0
+          ]
+        ],
+        "direction_accuracy": 0.52,
+        "direction_accuracy_errors_as_incorrect": 0.52,
+        "eligible": 100,
+        "errors": 0,
+        "evidence": "retrospective_development_pilot; no confirmation or promotion",
+        "forecast_availability": 1.0,
+        "interval_nominal_mass": null,
+        "intervals_calibrated": false,
+        "path_mae_bps": 10.1360050984326,
+        "raw_interval_coverage": null,
+        "scored": 100,
+        "terminal_mae_bps": 13.357609943622037,
+        "uncertainty_interval": null
+      }
+    },
+    "small": {
+      "diagnostics": {
+        "negative_amount_rows": 0,
+        "negative_volume_rows": 0,
+        "nonphysical_ohlc_rows": 1186,
+        "paths": 2000,
+        "rows": 30000
+      },
+      "elapsed_seconds": 308.53265837498475,
+      "metadata": {
+        "amount_policy": "derived_proxy: volume * mean(open,high,low,close); not provider dollar volume",
+        "dependencies": {
+          "einops": "0.8.1",
+          "huggingface-hub": "0.33.1",
+          "pandas": "3.0.5",
+          "safetensors": "0.6.2",
+          "torch": "2.14.1"
+        },
+        "device": "cpu",
+        "dtype": "float32",
+        "fine_tuned": false,
+        "model": {
+          "files": [
+            {
+              "bytes": 228,
+              "name": "config.json",
+              "sha256": "5e0f6a605d5f81b5c9b559fe5cf716a1acb041c744e6f41bd05b097b7a685396"
+            },
+            {
+              "bytes": 98980656,
+              "name": "model.safetensors",
+              "sha256": "b082dfcbd8e8c142a725c8bbb99781802f38fec81210e13479effb32b3c3e020"
+            }
+          ],
+          "name": "Kronos-small",
+          "repository": "NeoQuasar/Kronos-small",
+          "revision": "901c26c1332695a2a8f243eb2f37243a37bea320"
+        },
+        "model_parameter_count": 24741376,
+        "sampler": {
+          "paths": "individual duplicated-input batch series",
+          "sample_count_per_series": 1,
+          "seed_policy": "one CPU seed per call",
+          "temperature": 1.0,
+          "top_k": 0,
+          "top_p": 0.9
+        },
+        "source": {
+          "commit": "67b630e67f6a18c9e9be918d9b4337c960db1e9a",
+          "files": {
+            "LICENSE": {
+              "bytes": 1062,
+              "name": "LICENSE",
+              "sha256": "acb2d194d378204e5f2be4dcd24d39ecac437903620c790c3315a96dab388fdc"
+            },
+            "kronos.py": {
+              "bytes": 30133,
+              "name": "kronos.py",
+              "sha256": "2960874d0487078a0900b588b340f9679ab3e804f5750c28ab9922eff5723fc1"
+            },
+            "module.py": {
+              "bytes": 23426,
+              "name": "module.py",
+              "sha256": "a07edbadc0e96804c8158c021bbc6063bb7cc43b34d7fc470d5c8ff2005a409f"
+            }
+          },
+          "license": "MIT",
+          "repository": "https://github.com/shiyu-coder/Kronos"
+        },
+        "threads": 1,
+        "tokenizer": {
+          "files": [
+            {
+              "bytes": 301,
+              "name": "config.json",
+              "sha256": "2366e7ccfec76cbc19cf3c4c1b9c5d901be336ca1e83f2d2292c9bff381b77a2"
+            },
+            {
+              "bytes": 15842368,
+              "name": "model.safetensors",
+              "sha256": "59d85f6af76a2c3b8240ea06cb21db4213b4eeca053f246b23e29cf832fc6bee"
+            }
+          ],
+          "name": "Kronos-Tokenizer-base",
+          "repository": "NeoQuasar/Kronos-Tokenizer-base",
+          "revision": "0e0117387f39004a9016484a186a908917e22426"
+        },
+        "tokenizer_parameter_count": 3958042,
+        "variant": "small"
+      },
+      "metrics": {
+        "class_order": [
+          "DOWN",
+          "FLAT",
+          "UP"
+        ],
+        "confusion_matrix": [
+          [
+            4,
+            12,
+            3
+          ],
+          [
+            2,
+            48,
+            2
+          ],
+          [
+            4,
+            23,
+            2
+          ]
+        ],
+        "direction_accuracy": 0.54,
+        "direction_accuracy_errors_as_incorrect": 0.54,
+        "eligible": 100,
+        "errors": 0,
+        "evidence": "retrospective_development_pilot; no confirmation or promotion",
+        "forecast_availability": 1.0,
+        "interval_nominal_mass": 0.8,
+        "intervals_calibrated": false,
+        "path_mae_bps": 11.304629929035142,
+        "raw_interval_coverage": 0.4753333333333332,
+        "scored": 100,
+        "terminal_mae_bps": 15.18492446828697,
+        "uncertainty_interval": null
+      }
+    }
+  },
+  "prospective": {
+    "observed": 0,
+    "records": 5,
+    "target_times": [
+      "2026-10-07T13:45:00+00:00"
+    ],
+    "unavailable": []
+  },
+  "protocol": {
+    "broker_orders": 0,
+    "case_ids_hash": "37e595fbe5f0fe6bf98250ec997fd9e6c5d4821ed72beadd9179212a2453c67e",
+    "dates": [
+      "2026-10-01",
+      "2026-10-02",
+      "2026-10-05",
+      "2026-10-06"
+    ],
+    "dependency_lock_sha256": "6c4bf24c759111f66c7ed120dd60b1e11d30e4d9e0fc83f8f13baabd6104a078",
+    "evidence": "retrospective_development_pilot",
+    "fine_tuning": false,
+    "flat_bps": 10,
+    "horizon": 15,
+    "implementation": {
+      "dependencies": {
+        "exchange-calendars": "4.13.2",
+        "numpy": "2.5.2",
+        "pydantic": "2.13.4",
+        "scikit-learn": "1.9.1"
+      },
+      "package_version": "0.1.0",
+      "python": "3.13.5",
+      "source_sha256": "411f0aee2b32671f74e99d8870960b6e6834ec1b031b492edcc8c88705e194aa"
+    },
+    "jev_calls": 0,
+    "lookback": 60,
+    "max_seconds_per_model": 900,
+    "offsets": [
+      61,
+      121,
+      181,
+      241,
+      301
+    ],
+    "prospectively_requested": true,
+    "protocol_id": "08d8b52eaba5f5a33657c4143864cc6117609f5f264675097d0846400055f83e",
+    "registered_at": "2026-10-06T22:15:00.794150+00:00",
+    "samples": 20,
+    "schema_version": "kronos-pilot-protocol-v1",
+    "seed": 42,
+    "source_data_id": "16a6f953ceb082d432ba6eabb8c1c02f1fc6f88db5a6dc1354a082442bb2a04d",
+    "symbols": [
+      "AAPL",
+      "AMZN",
+      "MSFT",
+      "NVDA",
+      "TSLA"
+    ]
+  },
+  "published_at": "2026-10-06T22:34:10.078022+00:00",
+  "report_id": "a659189b4a15a0e8965575ef9cd661517102dbcecdbc9140243a99dbdea554b6",
+  "schema_version": "kronos-paper-public-summary-v1",
+  "source_data_id": "16a6f953ceb082d432ba6eabb8c1c02f1fc6f88db5a6dc1354a082442bb2a04d"
+}
