@@ -171,19 +171,43 @@ def test_runner_validates_identical_path_contract_in_both_phases(tmp_path, monke
         assert not any(name.startswith("pending_mini" if phase == "prospective" else "mini_") for name in paths.files)
 
 
-def test_prospective_metadata_change_fails_closed(tmp_path, monkeypatch):
+@pytest.mark.parametrize("phase", ["historical", "prospective"])
+def test_metadata_change_fails_closed_with_terminal_private_safe_progress(tmp_path, monkeypatch, phase):
+    import json
+
     _, _, engine, _, run = _offline_pilot(tmp_path, monkeypatch)
 
     class Changed(engine):
         def predict(self, history, future, seed=42, samples=20):
             paths = super().predict(history, future, seed, samples)
-            if future[0].day == 7:
-                self.metadata["revision"] = "changed during prospective call"
+            current = "prospective" if future[0].day == 7 else "historical"
+            if current == phase:
+                self.metadata["private_path"] = "PRIVATESENTINEL changed during model call"
             return paths
 
     with pytest.raises(ValueError, match="provenance"):
         run(Changed)
     assert not (tmp_path / "run").exists()
+    progress = json.loads((tmp_path / "run-progress.json").read_bytes())
+    assert progress == {"stage": "failed", "phase": f"{phase}_provenance", "model": "mini",
+                        "error_type": "ValueError"}
+    assert "PRIVATESENTINEL" not in str(progress)
+
+
+def test_source_provenance_drift_has_terminal_private_safe_progress(tmp_path, monkeypatch):
+    import json
+
+    module, _, _, _, run = _offline_pilot(tmp_path, monkeypatch)
+    original = module.source_provenance()
+    changed = original | {"source_sha256": "b" * 64, "private_path": "PRIVATESENTINEL changed source"}
+    versions = iter((original, changed))
+    monkeypatch.setattr(module, "source_provenance", lambda: next(versions))
+    with pytest.raises(ValueError, match="implementation changed"):
+        run()
+    assert not (tmp_path / "run").exists()
+    progress = json.loads((tmp_path / "run-progress.json").read_bytes())
+    assert progress == {"stage": "failed", "phase": "source_provenance", "error_type": "ValueError"}
+    assert "PRIVATESENTINEL" not in str(progress)
 
 
 def test_late_first_target_forecasts_are_retained_as_errors(tmp_path, monkeypatch):

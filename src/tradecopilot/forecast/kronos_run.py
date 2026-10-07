@@ -193,6 +193,7 @@ def run_pilot(
             if paths is not None:
                 raw_paths[f"{variant}_{index}"] = paths
         if engine is not None and json.loads(_encode(engine.metadata)) != stable_meta:
+            _progress(progress_path, "failed", phase="historical_provenance", model=variant, error_type="ValueError")
             raise ValueError("model provenance changed during inference")
         metrics = price_metrics(cases, predictions[variant], sample_intervals=True)
         diagnostics = {
@@ -286,9 +287,12 @@ def run_pilot(
                     row["forecasts"][variant] = _forecast(None, elapsed, reason) | {"failure_phase": phase}
                     model["failures"].append({"case_id": row["case_id"], "error_type": reason, "phase": phase})
                 if engine is not None and json.loads(_encode(engine.metadata)) != model["metadata"]:
+                    _progress(progress_path, "failed", phase="prospective_provenance", model=variant,
+                              error_type="ValueError")
                     raise ValueError("model provenance changed during prospective inference")
             rows.append(row)
     if source_provenance() != implementation:
+        _progress(progress_path, "failed", phase="source_provenance", error_type="ValueError")
         raise ValueError("implementation changed during inference")
     buffer = io.BytesIO()
     np.savez_compressed(buffer, **raw_paths)
