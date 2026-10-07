@@ -15,8 +15,10 @@ SYMBOLS = ("AAPL", "AMZN", "MSFT", "NVDA", "TSLA")
 
 
 def add_parser(commands: Any) -> None:
-    parent = commands.add_parser("kronos", help="Local Kronos forecasting with Alpaca paper-account data")
+    parent = commands.add_parser("kronos", help="Local Kronos research reports and an offline synthetic viewer demo")
     actions = parent.add_subparsers(dest="kronos_command", required=True)
+    demo = actions.add_parser("demo", help="Create synthetic viewer fixtures without credentials or model inference")
+    demo.add_argument("--output-dir", type=Path, required=True)
     fetch = actions.add_parser("fetch", help="GET paper account/clock and completed stock candles")
     fetch.add_argument("--start", required=True, type=date.fromisoformat)
     fetch.add_argument("--end", required=True, type=date.fromisoformat, help="exclusive New York date")
@@ -70,7 +72,13 @@ async def _fetch(args: argparse.Namespace) -> Path:
 
 
 def dispatch(args: argparse.Namespace) -> int:
-    if args.kronos_command == "fetch":
+    if args.kronos_command == "demo":
+        from tradecopilot.forecast.kronos_demo import write_demo
+
+        path = write_demo(args.output_dir)
+        print(json.dumps({"report": str(path), "evidence": "synthetic_contract_fixture",
+                          "provider_calls": 0, "model_inference_calls": 0, "broker_orders": 0}))
+    elif args.kronos_command == "fetch":
         path = asyncio.run(_fetch(args))
         print(json.dumps({"source": str(path), "mode": "paper", "feed": args.feed, "broker_orders": 0}))
     elif args.kronos_command == "pilot":

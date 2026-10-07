@@ -34,6 +34,10 @@ jobs:
           uv run --no-sync pytest
       - name: Produce an offline synthetic report
         run: uv run --frozen tradecopilot forecast demo --output-dir .tradecopilot/ci-demo
+      - name: Produce and verify the offline Kronos viewer demo
+        run: |
+          uv run --no-sync tradecopilot forecast kronos demo --output-dir "$GITHUB_WORKSPACE/.tradecopilot/ci-kronos-demo"
+          uv run --no-sync python -c "from pathlib import Path; import sys; from tradecopilot.forecast.kronos_report import load_report; r=load_report(Path(sys.argv[1])); assert r['connection']=={'mode':'synthetic'}; assert len(r['cases'])==4; assert all(not m['metrics']['evaluated'] for m in r['models'].values())" "$GITHUB_WORKSPACE/.tradecopilot/ci-kronos-demo/report.json"
       - name: Build the runtime image
         run: docker build --tag tradecopilot-forecast:ci .
       - name: Verify the container with networking disabled
@@ -59,7 +63,9 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: synthetic-forecast-demo
-          path: .tradecopilot/ci-demo/run/
+          path: |
+            .tradecopilot/ci-demo/run/
+            .tradecopilot/ci-kronos-demo/
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 7
