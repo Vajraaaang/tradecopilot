@@ -1,0 +1,37 @@
+{
+  "broker_orders": 0,
+  "cached_pretrained_replays": {
+    "bitwise_identical": 4,
+    "calls": 4,
+    "elapsed_seconds": 7.134047291998286,
+    "new_jev_calls": 0
+  },
+  "core_commit": "83bf8a0a09abc81be24752e95caaa6d23cda1c78",
+  "demo_commit": "34e9e974b2212fceeebad4d14d6455e938a9e712",
+  "full_suite": {
+    "passed": 1104,
+    "seconds": 141.59,
+    "warnings": 3
+  },
+  "hosted_checks": "see publication PR and main commit",
+  "native_cpu_smoke": "unmocked tiny untrained model; no downloads",
+  "new_provider_calls": 0,
+  "original_report_id": "a659189b4a15a0e8965575ef9cd661517102dbcecdbc9140243a99dbdea554b6",
+  "original_results_unchanged": true,
+  "package_assets": "verified exact",
+  "prospective_outcomes": "pending in original saved report",
+  "ruff": "passed",
+  "schema_version": "kronos-hardening-validation-v1",
+  "spec_and_quality_reviews": "passed",
+  "strict_mypy": "passed",
+  "viewer_checks": {
+    "console_errors": 0,
+    "controls_empty_queue_keyboard": "passed",
+    "original_real_metrics": "unchanged",
+    "real_pending": 5,
+    "real_records": 100,
+    "synthetic_cases": 4,
+    "synthetic_quality": "not evaluated"
+  },
+  "wheel_sha256": "9142689b7c70ff9d7eef03db04a80075f53ae4877ce856caca6c4bbc0ff11863"
+}

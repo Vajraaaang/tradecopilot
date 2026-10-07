@@ -40,7 +40,8 @@ flowchart LR
   path diagnostics, source identities and raw paths retained privately. A failed
   control or stale prospective context preserves completed historical results.
 - `forecast/kronos_report.py`: private immutable inventory, content seal,
-  publication deadline checks and separately received exact-candle joins.
+  publication deadline checks and separately received exact-candle joins with
+  verified parent, feed, grid and receipt consistency.
 - `forecast/kronos_dashboard.html`: completed versus prospective records, model
   selectors, context/forecast/actual curves, raw sample bands and full-cohort
   direction accuracy. Display never loads weights or calls a provider.
@@ -106,9 +107,12 @@ reviews passed; local check details are recorded in the
 Timing remains a limitation: recorded UTC registration-to-publication differs by
 1,149.28 seconds, while the historical model-loop and prospective-call timers
 sum to 384.07 seconds. The remaining 765.22 seconds have an unverified cause;
-no end-to-end monotonic timer was recorded. The registered 900-second check
-applies to starting new calls in each historical model loop, excluding setup
-and prospective calls. Per-model loop timings and the separate throughput
+no end-to-end monotonic timer was recorded. The original registered 900-second check
+applied to starting new historical calls, excluding setup and prospective calls.
+The October 7 implementation now measures initialization, historical and
+prospective phases and admits/accepts results against their combined own-model
+budget. It does not forcibly interrupt a blocking native call; an overrun is
+recorded and prevents subsequent calls. Per-model loop timings and the separate throughput
 probe do not establish end-to-end speed.
 
 ## Fixed development experiment
@@ -165,7 +169,8 @@ fail the prediction and remain in its denominator.
 When the market is closed, the named horizon is **the overnight gap plus the
 first 15 regular-session candles**. It is not a 15-minute wall-clock forecast.
 The report records original inference and publication timestamps and checks
-the publication deadline before and after its atomic publication. A deadline
+the publication deadline against the first target before and after its atomic
+publication. A deadline
 crossing retracts the bundle. Loading and outcome grading verify the original
 publication time. A derived graded report preserves it and records a separate
 bundle-creation time and parent identity.
@@ -174,7 +179,11 @@ bundle-creation time and parent identity.
 the final target has completed. Missing candles remain pending. Original
 forecasts and their raw paths are never overwritten. Incomplete regrading
 clears prior actuals in the new report to avoid attributing old prices to a new
-source; its parent report remains unchanged.
+source; its parent report remains unchanged. Derived writes require the verified
+original report path, preserve forecast/context/source/protocol fields and
+original forecast artifact bytes, and separately bind replacement outcome
+evidence. Matched candles must identify the original Alpaca feed and must have
+become available by the recorded outcome receipt.
 
 ## Reproduce locally
 
@@ -225,3 +234,50 @@ contain derived aggregate results only.
 The previous Jev, supervised neural and RL results remain in the repository,
 including their negative findings. This milestone makes zero Jev calls and
 introduces no fine-tuning, RL training, broker orders or profitability claim.
+
+## October 7 engineering hardening
+
+New guards strengthen future runs without rewriting the October 6 evidence:
+
+- Outcome joins reject mismatched per-candle feeds and availability later than
+  the recorded receipt; grids must contain fifteen unique consecutive UTC
+  regular-session minute ends. Successful path publication precedes its first
+  target.
+- Derived reports require a verified original file and retain immutable
+  forecasts, contexts, model/source/protocol identity and forecast artifact
+  bytes; corrected outcome evidence remains separately replaceable.
+- Alpaca responses have a 64 MiB cumulative raw-byte cap in addition to the
+  existing per-page, row, page and request limits. The remaining cap constrains
+  in-flight reads.
+- Both inference stages validate exact samples × fifteen × six finite outputs
+  with positive closes. Metadata is checked again after prospective calls.
+  Runtime initialization failures preserve unavailable cases and other
+  comparisons; native source/cache integrity errors still reject the run.
+- New reports retain preparation/control/model phase timers. Final progress
+  records UTC start/finish, monotonic duration through publication and explicit
+  publication failures. These fields do not explain the old timing discrepancy.
+- Public exports project validated nested fields and canonical messages; extra
+  private fields cannot be copied just because their containing report is sealed.
+- Optional CI exercises native tokenizer/model/CPU autoregression with tiny
+  untrained random configurations and no network access. That test checks
+  implementation compatibility, not pretrained prediction quality.
+
+The original cached pretrained outputs were also replayed after these repairs:
+first and last fixed cases for both models remained bitwise identical. There
+were no new Jev calls, provider requests, model fitting or order submissions in
+that verification.
+
+## Credential-free viewer fixture
+
+Use the base install and `tradecopilot forecast kronos demo --output-dir
+/ABS/private/kronos-demo`, then serve its `report.json` with the existing
+Kronos viewer. Four fictional examples exercise the interface with local
+deterministic math, five toy paths and a persistence calculation. There is no
+Alpaca connection, credential access, model execution or measured accuracy.
+Synthetic source, chart, comparison, empty queue and provenance labels remain
+explicit; the real-result publisher rejects the fixture.
+
+The October 7 full local regression suite passed 1,104 tests; Ruff and strict
+mypy passed. Original cached first/last cases for both pretrained models
+remained bitwise identical after hardening. The validation record and hosted
+checks distinguish these engineering checks from predictive improvement.
