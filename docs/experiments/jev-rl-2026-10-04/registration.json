@@ -1,0 +1,182 @@
+{
+  "schema_version": "jev-rl-ablation-registration-v1",
+  "created_at": "2026-10-04T07:45:44.293059+00:00",
+  "experiment_type": "JEV_RL_ABLATION",
+  "evidence_mode": "hypothetical_retrospective_jev_cache",
+  "forecast_profile": "MARKET_ONLY",
+  "source_range": {
+    "start": "2025-06-30",
+    "end_exclusive": "2025-10-23",
+    "provider": "Alpaca",
+    "feed": "sip",
+    "adjustment": "raw"
+  },
+  "symbols": [
+    "AAPL",
+    "AMZN",
+    "MSFT",
+    "NVDA",
+    "TSLA"
+  ],
+  "splits": {
+    "train": [
+      "2025-07-01",
+      "2025-09-24"
+    ],
+    "tune": [
+      "2025-09-25",
+      "2025-10-08"
+    ],
+    "test": [
+      "2025-10-09",
+      "2025-10-22"
+    ]
+  },
+  "candidates": [
+    {
+      "key": "recurrent-256",
+      "algorithm": "RecurrentPPO",
+      "lstm_hidden_size": 256,
+      "n_lstm_layers": 1,
+      "shared_lstm": false,
+      "enable_critic_lstm": true,
+      "pi": [
+        256,
+        128
+      ],
+      "vf": [
+        256,
+        128
+      ]
+    }
+  ],
+  "seeds": [
+    42,
+    43,
+    44
+  ],
+  "optimizer": {
+    "n_steps": 128,
+    "batch_size": 128,
+    "n_epochs": 10,
+    "learning_rate": 0.0003,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "clip_range": 0.2
+  },
+  "environment": {
+    "initial_cash": "10000",
+    "notional_cap": "1000",
+    "loss_lock": "100",
+    "base_cost_bps_per_side": 2,
+    "cost_stress_bps_per_side": [
+      4,
+      8
+    ],
+    "fee_per_fill": "0",
+    "quantity_quantum": "0.000001",
+    "capacity_fraction": "0.01",
+    "warmup_minutes": 60,
+    "latency_minutes": 1,
+    "forced_close_buffer_minutes": 5,
+    "actions": [
+      0,
+      0.5,
+      1
+    ],
+    "repeat_nonzero_target": "HOLD",
+    "flat": "sell held shares, repeat residual until flat or unresolved",
+    "reward": "10000*net_equity_change/initial_equity",
+    "network_in_rollout": false
+  },
+  "profiles": [
+    "CONTEXT_ONLY",
+    "JEV_ASSISTED"
+  ],
+  "jev": {
+    "model": "jev-1.13.0",
+    "prompt_version": "masked-normalized-ohlcv-3h-v1",
+    "as_of_minutes_after_open": 61,
+    "horizons": [
+      "15m",
+      "60m",
+      "close"
+    ],
+    "flat_threshold_bps": 10,
+    "simulated_latency_seconds": 60,
+    "horizon_expiry": "mask after target timestamp",
+    "real_generated_at_preserved": true,
+    "vendor_pretraining_cutoff": "unknown",
+    "mask_ticker_date_absolute_price": true,
+    "per_date_same_as_of_batch": true,
+    "calibration": "raw provider probabilities; no in-sample empirical calibration",
+    "abstention_threshold": 0.6
+  },
+  "api_budget": {
+    "max_attempts": 80,
+    "max_conservative_cost_usd": 0.25,
+    "max_requests_per_run": 10,
+    "max_cost_per_run_usd": 0.05,
+    "global_limit": 100,
+    "cooldown_seconds": 30,
+    "initial_global_attempts": 15,
+    "retry_provider_failures": false,
+    "abort_on_invalid_response": true
+  },
+  "training_budget": {
+    "max_steps_per_seed": 92160,
+    "min_steps_per_seed": 10240,
+    "max_seconds_per_seed": 600,
+    "device": "cpu",
+    "rollout_quantum": 128,
+    "rule": "floor(min(92160,0.8*600*slowest_train_probe_fps)/128)*128",
+    "workers": 1
+  },
+  "selection": {
+    "architecture": "fixed recurrent256 from preceding study; no architecture search",
+    "checkpoint": "highest mean TUNE date net return per profile over registered seeds; choose best TUNE seed separately per profile, tie lowest seed",
+    "test_release": "both profile selections sealed before any test reward scoring",
+    "primary_comparison": "JEV_ASSISTED minus CONTEXT_ONLY mean across all three seeds, paired by date",
+    "improvement_requires": "all scored episodes valid/resolved; positive paired 95pct lower bound of mean-seed increment; positive Jev mean-seed test net return and lower bound vs cash; drawdown <= loss_lock/initial_cash; positive mean-seed increment at doubled costs",
+    "controls": [
+      "cash",
+      "hold",
+      "rule"
+    ],
+    "bootstrap": "1000 paired date resamples with seed42",
+    "cost_stress_per_side_bps": [
+      4,
+      8
+    ]
+  },
+  "forecast_evaluation": {
+    "metrics": [
+      "argmax accuracy",
+      "log_loss",
+      "Brier",
+      "0.6 selected accuracy/coverage"
+    ],
+    "reference": "TRAIN-fitted class prior separately per horizon; not fed to policy",
+    "test_outcomes": "no quality scoring before both TUNE policy selections sealed",
+    "selection_rule": "min(max(probabilities),model_confidence)>=0.6, matching existing JevForecaster"
+  },
+  "constraints": {
+    "broker_orders": 0,
+    "paid_calls_in_rollout": 0,
+    "no_post_test_tuning": true,
+    "same_network_capacity_for_profiles": true,
+    "neutral_control": "identical market/age/target/anchor/availability features; valid forecast probabilities set uniform and confidence0; missing forecasts zero/masked"
+  },
+  "rule": {
+    "enter_when_return_5m_bps_above": 5,
+    "otherwise": "flat"
+  },
+  "data_quality_amendment": {
+    "reason": "NFLX missing required minute-grid data in61 of81 source sessions; change basedonlytimestampcompletenessbeforepaidinferenceorqualityscoring",
+    "replaces": "NFLX",
+    "replacement": "NVDA",
+    "initial_registration_id": "ebd70d152f5806528c186d8eb869975733cd3b3cdaa9dce2dd298cf6cef2238b",
+    "prices_returns_predictions_not_scored": true
+  },
+  "registration_id": "96774383ecf524fe2968d28d4d423fbc84722a6b9dcdc8c2713d8980f5c2b005"
+}

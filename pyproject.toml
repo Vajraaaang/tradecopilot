@@ -10,6 +10,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "Private" }
 dependencies = [
+  "httpx>=0.28,<1",
   "alpaca-py>=0.43.5,<1",
   "exchange-calendars>=4.5,<5",
   "keyring>=25.7,<26",
@@ -20,6 +21,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+sim = ["gymnasium>=1.1,<2"]
+neural = ["torch>=2.8,<3"]
+kronos = ["torch>=2.8,<3", "pandas>=2.2.3,<4", "einops==0.8.1", "huggingface-hub==0.33.1", "safetensors==0.6.2"]
+rl = ["gymnasium>=1.1,<2", "stable-baselines3>=2.7,<3", "sb3-contrib>=2.7,<3", "torch>=2.8,<3"]
 openai = ["openai>=1.99,<3"]
 plots = [
     "matplotlib>=3.9,<4",
@@ -27,6 +32,7 @@ plots = [
 
 [dependency-groups]
 dev = [
+  "gymnasium>=1.1,<2",
   "hypothesis>=6.130,<7",
   "mypy>=1.15,<2",
   "pytest>=8.3,<9",
@@ -46,6 +52,7 @@ testpaths = ["tests"]
 
 [tool.ruff]
 target-version = "py312"
+extend-exclude = ["src/tradecopilot/_vendor/kronos"]
 line-length = 120
 src = ["src", "tests"]
 
@@ -56,3 +63,15 @@ select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
 python_version = "3.12"
 strict = true
 packages = ["tradecopilot"]
+
+[[tool.mypy.overrides]]
+module = ["tradecopilot._vendor.kronos.*"]
+ignore_errors = true
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]

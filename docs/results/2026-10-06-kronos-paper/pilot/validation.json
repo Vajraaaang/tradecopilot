@@ -1,0 +1,51 @@
+{
+  "browser": {
+    "actual_report_rendered": true,
+    "conditional_band_aria_and_boundaries": "passed",
+    "full_wcag_conformance": "not_claimed",
+    "keyboard_focus": "passed",
+    "model_symbol_case_group_queue_selection": "passed",
+    "observed_console_errors": 0,
+    "page_overflow": false,
+    "temporary_viewport_restored": true,
+    "tested_css_widths": [
+      972,
+      1680,
+      375
+    ]
+  },
+  "chart_regression": {
+    "passed": 1,
+    "real_png_from_synthetic_fixture": true
+  },
+  "code_quality_review": "passed",
+  "final_http_report_and_renderer_tests": {
+    "passed": 26
+  },
+  "four_offline_replays_bitwise_identical": true,
+  "full_regression": {
+    "passed": 1035,
+    "seconds": 172.56,
+    "warnings": 3
+  },
+  "hosted_ci": "see pull request checks on publication commit",
+  "independent_numerical_audit": "passed",
+  "inference_commit": "3abbef655b8776e56418e0d80049ad8470b2eb9b",
+  "new_jev_calls": 0,
+  "orders_submitted_by_this_work": 0,
+  "package": {
+    "final_dashboard_asset_exact": true,
+    "schema_version": "kronos-final-package-proof-v1",
+    "vendor_license_manifest_and_source_exact": true,
+    "wheel_sha256": "79ce2b77325c173d9a71e2009ad481bab2b44b648fe035b027a368ee7b90e2fe"
+  },
+  "report_id": "a659189b4a15a0e8965575ef9cd661517102dbcecdbc9140243a99dbdea554b6",
+  "ruff": "passed",
+  "schema_version": "kronos-paper-validation-v1",
+  "specification_review": "passed",
+  "strict_mypy": {
+    "passed": true,
+    "source_files": 92
+  },
+  "ui_commit": "58de438dca43296416dc308e697b257ab4d7fcb8"
+}

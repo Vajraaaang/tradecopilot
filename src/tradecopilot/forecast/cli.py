@@ -18,6 +18,8 @@ DEFAULT_STORE = Path(".tradecopilot/forecast/observations.sqlite3")
 def add_forecast_parser(subparsers: Any) -> None:
     forecast = subparsers.add_parser("forecast", help="Versioned price forecasting, offline evaluation, and Jev pilots")
     commands = forecast.add_subparsers(dest="forecast_command", required=True)
+    from tradecopilot.forecast.kronos_cli import add_parser as add_kronos_parser
+    add_kronos_parser(commands)
     demo = commands.add_parser("demo", help="Build and evaluate a deterministic synthetic dataset without API calls")
     demo.add_argument("--output-dir", type=Path, default=Path(".tradecopilot/forecast/demo"))
     demo.add_argument("--config", type=Path)
@@ -78,6 +80,9 @@ def dispatch(args: argparse.Namespace) -> int:
 
 
 def _dispatch(args: argparse.Namespace) -> int:
+    if args.forecast_command == "kronos":
+        from tradecopilot.forecast.kronos_cli import dispatch as dispatch_kronos
+        return dispatch_kronos(args)
     from tradecopilot.forecast.data import ForecastStore
     from tradecopilot.forecast.dataset import build_dataset, load_dataset, write_dataset
     from tradecopilot.forecast.experiment import load_report, run_experiment, write_pilot_report

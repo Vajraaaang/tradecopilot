@@ -73,6 +73,7 @@
         synthetic_demo: "Synthetic prices and outcomes. These scores verify the pipeline; they do not measure real-market performance.",
         historical_benchmark: "Historical market data, evaluated chronologically using documented replay availability. Holdout scores do not establish future performance or profitability.",
         retrospective_historical_sample: "Retrospective Jev inference after the historical outcomes. This small selected sample is not prospective validation; model training contamination cannot be ruled out.",
+        ohlcv_validation_development: "OHLCV CPU validation development comparison. Previously inspected test sessions are excluded; these scores are not fresh confirmation or proof of future performance.",
         prospective_pilot: "Prospectively recorded market forecasts. This small integration pilot is not a validated benchmark."
       };
       $("created-at").textContent = `${date(report.created_at)} UTC`;
@@ -83,7 +84,7 @@
       stat("Source observations", dataset.observation_count, `${count((dataset.sessions || []).length)} recorded sessions`);
       stat("Forecast examples", dataset.example_count, "Across the saved dataset");
       stat("Labeled outcomes", dataset.labeled_count, `${count((dataset.example_count || 0) - (dataset.labeled_count || 0))} pending or excluded`);
-      stat(kind === "prospective_pilot" ? "Pilot inputs" : kind === "retrospective_historical_sample" ? "Selected test cases" : "Holdout examples", (splits.test || splits.pilot || splits.test_sample || {}).examples, `${models.length} evaluated model${models.length === 1 ? "" : "s"}`);
+      stat(kind === "prospective_pilot" ? "Pilot inputs" : kind === "retrospective_historical_sample" ? "Selected test cases" : kind === "ohlcv_validation_development" ? "Validation cases" : "Holdout examples", (splits.test || splits.pilot || splits.test_sample || splits.validation || {}).examples, `${models.length} evaluated model${models.length === 1 ? "" : "s"}`);
       $("split-note").textContent = kind === "prospective_pilot" ? "Prospective pilot; no training, validation, or test partition was fitted here." : kind === "retrospective_historical_sample" ? "Selected held-out cases; Jev was called retrospectively. CPU models retain their original training/validation split." : "Ordered by session. Outcome windows crossing split boundaries are purged before fitting.";
       $("thresholds").textContent = `Flat band ±${fixed(config.flat_threshold_bps, 1)} bps · Abstain below ${percent(config.abstention_threshold)}`;
       for (const name of ["train", "validation", "test", "pilot", "test_sample"]) {

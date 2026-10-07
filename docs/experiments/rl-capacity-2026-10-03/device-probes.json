@@ -1,0 +1,84 @@
+{
+  "prepared_data_id": "578f001bb9e444e522fb77dd21a24abe50d1d78c3144df0892660c1024adf44b",
+  "registration_id": "5bb6992bed6be525687269c4e0b12c0e962676647cb12b3fd4a79ff41c1de183",
+  "support": {
+    "cpu": true,
+    "mps_built": true,
+    "mps_available": true,
+    "mps_parity": "unverified"
+  },
+  "benchmarks": [
+    {
+      "actual_timesteps": 1024,
+      "n_updates": 80,
+      "elapsed_seconds": 0.3540932089963462,
+      "training_fps": 2891.8939250556664,
+      "n_parameters": 24964,
+      "device": "cpu",
+      "status": "complete",
+      "initialization_seconds": 0.6398659170008614,
+      "candidate": "ppo-64",
+      "parity": true
+    },
+    {
+      "actual_timesteps": 1024,
+      "n_updates": 80,
+      "elapsed_seconds": 0.392486333999841,
+      "training_fps": 2609.0080374630693,
+      "n_parameters": 198148,
+      "device": "cpu",
+      "status": "complete",
+      "initialization_seconds": 0.008081375002802815,
+      "candidate": "ppo-256",
+      "parity": true
+    },
+    {
+      "actual_timesteps": 1024,
+      "n_updates": 80,
+      "elapsed_seconds": 5.327080957998987,
+      "training_fps": 192.22534969407437,
+      "n_parameters": 986372,
+      "device": "cpu",
+      "status": "complete",
+      "initialization_seconds": 0.00956758300162619,
+      "candidate": "recurrent-256",
+      "parity": true
+    },
+    {
+      "actual_timesteps": 1024,
+      "n_updates": 80,
+      "elapsed_seconds": 4.248322542000096,
+      "training_fps": 241.03631253899667,
+      "n_parameters": 24964,
+      "device": "mps",
+      "status": "complete",
+      "initialization_seconds": 0.004449792002560571,
+      "candidate": "ppo-64",
+      "parity": true
+    },
+    {
+      "actual_timesteps": 1024,
+      "n_updates": 80,
+      "elapsed_seconds": 3.183255875002942,
+      "training_fps": 321.6832200141792,
+      "n_parameters": 198148,
+      "device": "mps",
+      "status": "complete",
+      "initialization_seconds": 0.011393082997528836,
+      "candidate": "ppo-256",
+      "parity": true
+    },
+    {
+      "actual_timesteps": 1024,
+      "n_updates": 80,
+      "elapsed_seconds": 15.09978895799577,
+      "training_fps": 67.81551734587407,
+      "n_parameters": 986372,
+      "device": "mps",
+      "status": "complete",
+      "initialization_seconds": 0.014435999997658655,
+      "candidate": "recurrent-256",
+      "parity": true
+    }
+  ]
+}

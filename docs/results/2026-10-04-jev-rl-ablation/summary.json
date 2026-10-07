@@ -1,0 +1,711 @@
+{
+  "acquisition": {
+    "amended": true,
+    "amendment_id": "7adadaccce2504a8816ae601ecc11b828ab30ef60b193e9f54947256347fc208",
+    "batch_counts": {
+      "unavailable": 12.0,
+      "valid": 68.0
+    },
+    "caps": {
+      "cooldown_seconds": 30.0,
+      "max_attempts": 80.0,
+      "max_conservative_cost_usd": 0.25
+    },
+    "continuation_planned_batches": 74,
+    "initial_attempted_batches": 6,
+    "original_abort_rule_overridden": true,
+    "payloads_and_prompts_unchanged": true,
+    "resume_unattempted_only": true,
+    "retry_provider_failures": false,
+    "same_original_caps": true
+  },
+  "api_usage": {
+    "attempts": 80.0,
+    "conservative_estimated_cost_usd": 0.024683736000000005,
+    "cost_basis": "conservative estimate from actual input tokens; not billed cost",
+    "input_tokens": 587708.0,
+    "new_jev_calls_during_ablation": 0
+  },
+  "cache_availability_mode": "hypothetical_as_of_plus_60_seconds",
+  "cost_stress_bps_per_side": {
+    "2": {
+      "CONTEXT_ONLY": {
+        "dates": 10.0,
+        "episodes_per_seed": 50.0,
+        "max_episode_drawdown_bps": 64.87456917019958,
+        "mean_daily_return_bps": -3.486831053971486,
+        "mean_execution_drag_per_seed": 60.10050676730765,
+        "mean_fees_per_seed": 0.0,
+        "mean_trade_count_per_seed": 791.3333333333334,
+        "mean_turnover_per_seed": 300502.55668474745,
+        "seeds": [
+          42,
+          43,
+          44
+        ]
+      },
+      "JEV_ASSISTED": {
+        "dates": 10.0,
+        "episodes_per_seed": 50.0,
+        "max_episode_drawdown_bps": 44.52476244839611,
+        "mean_daily_return_bps": -3.4179821814708675,
+        "mean_execution_drag_per_seed": 69.23711126537671,
+        "mean_fees_per_seed": 0.0,
+        "mean_trade_count_per_seed": 697.3333333333334,
+        "mean_turnover_per_seed": 346185.57665928314,
+        "seeds": [
+          42,
+          43,
+          44
+        ]
+      }
+    },
+    "4": {
+      "CONTEXT_ONLY": {
+        "dates": 10.0,
+        "episodes_per_seed": 50.0,
+        "max_episode_drawdown_bps": 64.87613321501394,
+        "mean_daily_return_bps": -4.688357751009041,
+        "mean_execution_drag_per_seed": 120.17828151725205,
+        "mean_fees_per_seed": 0.0,
+        "mean_trade_count_per_seed": 782.6666666666666,
+        "mean_turnover_per_seed": 300445.74948897253,
+        "seeds": [
+          42,
+          43,
+          44
+        ]
+      },
+      "JEV_ASSISTED": {
+        "dates": 10.0,
+        "episodes_per_seed": 50.0,
+        "max_episode_drawdown_bps": 44.62141245637683,
+        "mean_daily_return_bps": -4.82137546879006,
+        "mean_execution_drag_per_seed": 137.51449010640297,
+        "mean_fees_per_seed": 0.0,
+        "mean_trade_count_per_seed": 662.3333333333334,
+        "mean_turnover_per_seed": 343786.2666877208,
+        "seeds": [
+          42,
+          43,
+          44
+        ]
+      }
+    },
+    "8": {
+      "CONTEXT_ONLY": {
+        "dates": 10.0,
+        "episodes_per_seed": 50.0,
+        "max_episode_drawdown_bps": 64.87926113983026,
+        "mean_daily_return_bps": -7.070663622776048,
+        "mean_execution_drag_per_seed": 239.99934334413578,
+        "mean_fees_per_seed": 0.0,
+        "mean_trade_count_per_seed": 768.0,
+        "mean_turnover_per_seed": 299999.27000724,
+        "seeds": [
+          42,
+          43,
+          44
+        ]
+      },
+      "JEV_ASSISTED": {
+        "dates": 10.0,
+        "episodes_per_seed": 50.0,
+        "max_episode_drawdown_bps": 45.05187622252277,
+        "mean_daily_return_bps": -7.644060417818153,
+        "mean_execution_drag_per_seed": 277.589989003641,
+        "mean_fees_per_seed": 0.0,
+        "mean_trade_count_per_seed": 623.0,
+        "mean_turnover_per_seed": 346987.5699449767,
+        "seeds": [
+          42,
+          43,
+          44
+        ]
+      }
+    }
+  },
+  "forecast_coverage_definition": "probability and confidence both >= 0.6; denominator is full cohort including unavailable records",
+  "forecast_grading": {
+    "availability": {
+      "available_records": 1020.0,
+      "cohort_records": 1200.0,
+      "error_rate": 0.15,
+      "unavailable_records": 180.0
+    },
+    "horizons": {
+      "15m": {
+        "test": {
+          "jev": {
+            "Brier": 0.8978133333333334,
+            "accuracy": 0.26666666666666666,
+            "accuracy_available": 0.26666666666666666,
+            "accuracy_errors_as_incorrect": 0.24,
+            "accuracy_scope": "conditional_on_available_records",
+            "available_records": 45.0,
+            "cohort_records": 50.0,
+            "coverage_0_6": 0.36,
+            "coverage_scope": "full_cohort",
+            "error_rate": 0.1,
+            "log_loss": 1.4654052643238433,
+            "loss_scope": "available_records_only",
+            "records": 50.0,
+            "selected_accuracy_0_6": 0.2777777777777778,
+            "selected_records_0_6": 18,
+            "unavailable_records": 5.0
+          },
+          "prior_full_cohort": {
+            "Brier": 0.6722666666666666,
+            "accuracy": 0.36,
+            "accuracy_available": 0.36,
+            "accuracy_errors_as_incorrect": 0.36,
+            "accuracy_scope": "conditional_on_available_records",
+            "available_records": 50.0,
+            "cohort_records": 50.0,
+            "coverage_0_6": 0.0,
+            "coverage_scope": "full_cohort",
+            "error_rate": 0.0,
+            "log_loss": 1.1072081322875404,
+            "loss_scope": "available_records_only",
+            "records": 50.0,
+            "selected_accuracy_0_6": null,
+            "selected_records_0_6": 0,
+            "unavailable_records": 0.0
+          },
+          "prior_same_available": {
+            "Brier": 0.667288888888889,
+            "accuracy": 0.4,
+            "accuracy_available": 0.4,
+            "accuracy_errors_as_incorrect": 0.36,
+            "accuracy_scope": "conditional_on_available_records",
+            "available_records": 45.0,
+            "cohort_records": 50.0,
+            "coverage_0_6": 0.0,
+            "coverage_scope": "full_cohort",
+            "error_rate": 0.1,
+            "log_loss": 1.1012881811654676,
+            "loss_scope": "available_records_only",
+            "records": 50.0,
+            "selected_accuracy_0_6": null,
+            "selected_records_0_6": 0,
+            "unavailable_records": 5.0
+          }
+        },
+        "train_availability": {
+          "available_records": 260.0,
+          "cohort_records": 300.0,
+          "error_rate": 0.13333333333333333,
+          "unavailable_records": 40.0
+        },
+        "train_labels": 300.0,
+        "tune": {
+          "jev": {
+            "Brier": 0.8424514285714286,
+            "accuracy": 0.34285714285714286,
+            "accuracy_available": 0.34285714285714286,
+            "accuracy_errors_as_incorrect": 0.24,
+            "accuracy_scope": "conditional_on_available_records",
+            "available_records": 35.0,
+            "cohort_records": 50.0,
+            "coverage_0_6": 0.12,
+            "coverage_scope": "full_cohort",
+            "error_rate": 0.3,
+            "log_loss": 1.4485767118343602,
+            "loss_scope": "available_records_only",
+            "records": 50.0,
+            "selected_accuracy_0_6": 0.16666666666666666,
+            "selected_records_0_6": 6,
+            "unavailable_records": 15.0
+          },
+          "prior_full_cohort": {
+            "Brier": 0.6866666666666665,
+            "accuracy": 0.28,
+            "accuracy_available": 0.28,
+            "accuracy_errors_as_incorrect": 0.28,
+            "accuracy_scope": "conditional_on_available_records",
+            "available_records": 50.0,
+            "cohort_records": 50.0,
+            "coverage_0_6": 0.0,
+            "coverage_scope": "full_cohort",
+            "error_rate": 0.0,
+            "log_loss": 1.1266355642542283,
+            "loss_scope": "available_records_only",
+            "records": 50.0,
+            "selected_accuracy_0_6": null,
+            "selected_records_0_6": 0,
+            "unavailable_records": 0.0
+          },
+          "prior_same_available": {
+            "Brier": 0.6667809523809524,
+            "accuracy": 0.34285714285714286,
+            "accuracy_available": 0.34285714285714286,
+            "accuracy_errors_as_incorrect": 0.24,
+            "accuracy_scope": "conditional_on_available_records",
+            "available_records": 35.0,
+            "cohort_records": 50.0,
+            "coverage_0_6": 0.0,
+            "coverage_scope": "full_cohort",
+            "error_rate": 0.3,
+            "log_loss": 1.0967380603869288,
+            "loss_scope": "available_records_only",
+            "records": 50.0,
+            "selected_accuracy_0_6": null,
+            "selected_records_0_6": 0,
+            "unavailable_records": 15.0
+          }
+        }
+      },
+      "60m": {
+        "test": {
+          "jev": {
+            "Brier": 0.8464355555555555,
+            "accuracy": 0.26666666666666666,
+            "accuracy_available": 0.26666666666666666,
+            "accuracy_errors_as_incorrect": 0.24,
+            "accuracy_scope": "conditional_on_available_records",
+            "available_records": 45.0,
+            "cohort_records": 50.0,
+            "coverage_0_6": 0.14,
+            "coverage_scope": "full_cohort",
+            "error_rate": 0.1,
+            "log_loss": 1.4564990328230667,
+            "loss_scope": "available_records_only",
+            "records": 50.0,
+            "selected_accuracy_0_6": 0.42857142857142855,
+            "selected_records_0_6": 7,
+            "unavailable_records": 5.0
+          },
+          "prior_full_cohort": {
+            "Brier": 0.5896666666666666,
+            "accuracy": 0.62,
+            "accuracy_available": 0.62,
+            "accuracy_errors_as_incorrect": 0.62,
+            "accuracy_scope": "conditional_on_available_records",
+            "available_records": 50.0,
+            "cohort_records": 50.0,
+            "coverage_0_6": 0.0,
+            "coverage_scope": "full_cohort",
+            "error_rate": 0.0,
+            "log_loss": 0.9796617416784663,
+            "loss_scope": "available_records_only",
+            "records": 50.0,
+            "selected_accuracy_0_6": null,
+            "selected_records_0_6": 0,
+            "unavailable_records": 0.0
+          },
+          "prior_same_available": {
+            "Brier": 0.5962,
+            "accuracy": 0.6,
+            "accuracy_available": 0.6,
+            "accuracy_errors_as_incorrect": 0.54,
+            "accuracy_scope": "conditional_on_available_records",
+            "available_records": 45.0,
+            "cohort_records": 50.0,
+            "coverage_0_6": 0.0,
+            "coverage_scope": "full_cohort",
+            "error_rate": 0.1,
+            "log_loss": 0.989891657795171,
+            "loss_scope": "available_records_only",
+            "records": 50.0,
+            "selected_accuracy_0_6": null,
+            "selected_records_0_6": 0,
+            "unavailable_records": 5.0
+          }
+        },
+        "train_availability": {
+          "available_records": 260.0,
+          "cohort_records": 300.0,
+          "error_rate": 0.13333333333333333,
+          "unavailable_records": 40.0
+        },
+        "train_labels": 300.0,
+        "tune": {
+          "jev": {
+            "Brier": 0.7990914285714286,
+            "accuracy": 0.3142857142857143,
+            "accuracy_available": 0.3142857142857143,
+            "accuracy_errors_as_incorrect": 0.22,
+            "accuracy_scope": "conditional_on_available_records",
+            "available_records": 35.0,
+            "cohort_records": 50.0,
+            "coverage_0_6": 0.06,
+            "coverage_scope": "full_cohort",
+            "error_rate": 0.3,
+            "log_loss": 1.391808041152891,
+            "loss_scope": "available_records_only",
+            "records": 50.0,
+            "selected_accuracy_0_6": 0.3333333333333333,
+            "selected_records_0_6": 3,
+            "unavailable_records": 15.0
+          },
+          "prior_full_cohort": {
+            "Brier": 0.6288666666666667,
+            "accuracy": 0.42,
+            "accuracy_available": 0.42,
+            "accuracy_errors_as_incorrect": 0.42,
+            "accuracy_scope": "conditional_on_available_records",
+            "available_records": 50.0,
+            "cohort_records": 50.0,
+            "coverage_0_6": 0.0,
+            "coverage_scope": "full_cohort",
+            "error_rate": 0.0,
+            "log_loss": 1.0354396901526592,
+            "loss_scope": "available_records_only",
+            "records": 50.0,
+            "selected_accuracy_0_6": null,
+            "selected_records_0_6": 0,
+            "unavailable_records": 0.0
+          },
+          "prior_same_available": {
+            "Brier": 0.6388666666666667,
+            "accuracy": 0.37142857142857144,
+            "accuracy_available": 0.37142857142857144,
+            "accuracy_errors_as_incorrect": 0.26,
+            "accuracy_scope": "conditional_on_available_records",
+            "available_records": 35.0,
+            "cohort_records": 50.0,
+            "coverage_0_6": 0.0,
+            "coverage_scope": "full_cohort",
+            "error_rate": 0.3,
+            "log_loss": 1.0498402346070768,
+            "loss_scope": "available_records_only",
+            "records": 50.0,
+            "selected_accuracy_0_6": null,
+            "selected_records_0_6": 0,
+            "unavailable_records": 15.0
+          }
+        }
+      },
+      "close": {
+        "test": {
+          "jev": {
+            "Brier": 1.0122133333333332,
+            "accuracy": 0.17777777777777778,
+            "accuracy_available": 0.17777777777777778,
+            "accuracy_errors_as_incorrect": 0.16,
+            "accuracy_scope": "conditional_on_available_records",
+            "available_records": 45.0,
+            "cohort_records": 50.0,
+            "coverage_0_6": 0.16,
+            "coverage_scope": "full_cohort",
+            "error_rate": 0.1,
+            "log_loss": 1.7566862921386492,
+            "loss_scope": "available_records_only",
+            "records": 50.0,
+            "selected_accuracy_0_6": 0.0,
+            "selected_records_0_6": 8,
+            "unavailable_records": 5.0
+          },
+          "prior_full_cohort": {
+            "Brier": 0.6213555555555557,
+            "accuracy": 0.48,
+            "accuracy_available": 0.48,
+            "accuracy_errors_as_incorrect": 0.48,
+            "accuracy_scope": "conditional_on_available_records",
+            "available_records": 50.0,
+            "cohort_records": 50.0,
+            "coverage_0_6": 0.0,
+            "coverage_scope": "full_cohort",
+            "error_rate": 0.0,
+            "log_loss": 1.0299526317016312,
+            "loss_scope": "available_records_only",
+            "records": 50.0,
+            "selected_accuracy_0_6": null,
+            "selected_records_0_6": 0,
+            "unavailable_records": 0.0
+          },
+          "prior_same_available": {
+            "Brier": 0.6218592592592593,
+            "accuracy": 0.4444444444444444,
+            "accuracy_available": 0.4444444444444444,
+            "accuracy_errors_as_incorrect": 0.4,
+            "accuracy_scope": "conditional_on_available_records",
+            "available_records": 45.0,
+            "cohort_records": 50.0,
+            "coverage_0_6": 0.0,
+            "coverage_scope": "full_cohort",
+            "error_rate": 0.1,
+            "log_loss": 1.0275443261358435,
+            "loss_scope": "available_records_only",
+            "records": 50.0,
+            "selected_accuracy_0_6": null,
+            "selected_records_0_6": 0,
+            "unavailable_records": 5.0
+          }
+        },
+        "train_availability": {
+          "available_records": 260.0,
+          "cohort_records": 300.0,
+          "error_rate": 0.13333333333333333,
+          "unavailable_records": 40.0
+        },
+        "train_labels": 300.0,
+        "tune": {
+          "jev": {
+            "Brier": 1.0222914285714286,
+            "accuracy": 0.2,
+            "accuracy_available": 0.2,
+            "accuracy_errors_as_incorrect": 0.14,
+            "accuracy_scope": "conditional_on_available_records",
+            "available_records": 35.0,
+            "cohort_records": 50.0,
+            "coverage_0_6": 0.22,
+            "coverage_scope": "full_cohort",
+            "error_rate": 0.3,
+            "log_loss": 1.697398004384201,
+            "loss_scope": "available_records_only",
+            "records": 50.0,
+            "selected_accuracy_0_6": 0.09090909090909091,
+            "selected_records_0_6": 11,
+            "unavailable_records": 15.0
+          },
+          "prior_full_cohort": {
+            "Brier": 0.6198888888888889,
+            "accuracy": 0.36,
+            "accuracy_available": 0.36,
+            "accuracy_errors_as_incorrect": 0.36,
+            "accuracy_scope": "conditional_on_available_records",
+            "available_records": 50.0,
+            "cohort_records": 50.0,
+            "coverage_0_6": 0.0,
+            "coverage_scope": "full_cohort",
+            "error_rate": 0.0,
+            "log_loss": 1.0149323444988032,
+            "loss_scope": "available_records_only",
+            "records": 50.0,
+            "selected_accuracy_0_6": null,
+            "selected_records_0_6": 0,
+            "unavailable_records": 0.0
+          },
+          "prior_same_available": {
+            "Brier": 0.6312984126984127,
+            "accuracy": 0.2571428571428571,
+            "accuracy_available": 0.2571428571428571,
+            "accuracy_errors_as_incorrect": 0.18,
+            "accuracy_scope": "conditional_on_available_records",
+            "available_records": 35.0,
+            "cohort_records": 50.0,
+            "coverage_0_6": 0.0,
+            "coverage_scope": "full_cohort",
+            "error_rate": 0.3,
+            "log_loss": 1.029626836283842,
+            "loss_scope": "available_records_only",
+            "records": 50.0,
+            "selected_accuracy_0_6": null,
+            "selected_records_0_6": 0,
+            "unavailable_records": 15.0
+          }
+        }
+      }
+    }
+  },
+  "forecast_metric_units": "accuracy/coverage fractions; log loss natural logarithm; multiclass Brier sum",
+  "identities": {
+    "base_prepared_data_id": "39486220a35922109079c4a58fe1b80d985de3feafbe4658fa2ba9d44a97b753",
+    "budget_id": "148a9912729adc4a7d87daf4431a75a0a69e140ffb62e95dfba684c02a2972e6",
+    "cache_id": "a5828202884e035b53231bd7392e6ade78547eb95a25628da6e78febdea2af76",
+    "registration_id": "96774383ecf524fe2968d28d4d423fbc84722a6b9dcdc8c2713d8980f5c2b005",
+    "report_id": "4daecec03de0d7deaa9f37516165ea06137233d5c743e83771a33a985642d4a2"
+  },
+  "interpretation": "Equal-weight independent symbol-day capital resets; primary TEST averages all three seeds.",
+  "metric": "mean daily net policy return in basis points",
+  "paired_intervals_bps": {
+    "jev_minus_cash": {
+      "dates": 10,
+      "high": 0.0011601667166122585,
+      "low": -8.934403016715452,
+      "mean": -3.4179821814708675,
+      "method": "paired_date_bootstrap_95pct"
+    },
+    "jev_minus_context": {
+      "dates": 10,
+      "high": 1.8277798845810997,
+      "low": -1.3937537235888167,
+      "mean": 0.06884887250061832,
+      "method": "paired_date_bootstrap_95pct"
+    }
+  },
+  "primary_test": {
+    "CONTEXT_ONLY": {
+      "dates": 10.0,
+      "episodes_per_seed": 50.0,
+      "max_episode_drawdown_bps": 64.87456917019958,
+      "mean_daily_return_bps": -3.486831053971486,
+      "mean_execution_drag_per_seed": 60.10050676730765,
+      "mean_fees_per_seed": 0.0,
+      "mean_trade_count_per_seed": 791.3333333333334,
+      "mean_turnover_per_seed": 300502.55668474745,
+      "seeds": [
+        42,
+        43,
+        44
+      ]
+    },
+    "JEV_ASSISTED": {
+      "dates": 10.0,
+      "episodes_per_seed": 50.0,
+      "max_episode_drawdown_bps": 44.52476244839611,
+      "mean_daily_return_bps": -3.4179821814708675,
+      "mean_execution_drag_per_seed": 69.23711126537671,
+      "mean_fees_per_seed": 0.0,
+      "mean_trade_count_per_seed": 697.3333333333334,
+      "mean_turnover_per_seed": 346185.57665928314,
+      "seeds": [
+        42,
+        43,
+        44
+      ]
+    }
+  },
+  "profile_contract": {
+    "CONTEXT_ONLY": "Uniform direction probabilities and zero confidence; same context metadata",
+    "JEV_ASSISTED": "Raw Jev probabilities and confidence; same context metadata",
+    "algorithm": "RecurrentPPO",
+    "lstm_hidden_size": 256,
+    "matched_parameters": 1035524,
+    "observation_dim": 151,
+    "unavailable_forecasts": "All eight forecast fields zero for both profiles; all market episodes retained"
+  },
+  "promotion": {
+    "checks": {
+      "drawdown_limit": true,
+      "positive_cash_lower_bound": false,
+      "positive_doubled_cost_mean_seed_increment": false,
+      "positive_jev_mean_seed_net_return": false,
+      "positive_mean_seed_increment_lower_bound": false
+    },
+    "passed": false
+  },
+  "public_id": "792b97dffda39c79b808d44da84d39a24a078b917fb78267da22cfe2b1853a42",
+  "schema_version": "jev-rl-public-v1",
+  "scope": "hypothetical_retrospective_jev_cache",
+  "selected_tune_diagnostics": {
+    "CONTEXT_ONLY": {
+      "checkpoint_sha256": "3d21d4b04f84569f32894a00cac55753345f7bbc27f70f38ed4d1a8b65575a5e",
+      "role": "TUNE-selected checkpoint diagnostic; not primary TEST estimate",
+      "seed": 42,
+      "training_id": "fa93a3c17656fccffa3726de93cce0b4f6717ad13ed1d21d7f485874268b5734"
+    },
+    "JEV_ASSISTED": {
+      "checkpoint_sha256": "b254ddffa3e5a2ca93c4a64ba35a17576954d719dd96d0e85d339c27a9622ac1",
+      "role": "TUNE-selected checkpoint diagnostic; not primary TEST estimate",
+      "seed": 44,
+      "training_id": "cf387cc967233afabb8acebfe1195b6a44fef4d63b01c732acd2bba1eebcd368"
+    }
+  },
+  "selection_id": "ac6dff4289fedafadacdd843a5e49c3791c854e1d6c06890c9627dd15ba1bb25",
+  "source_attribution": "Alpaca SIP / raw bars; Jev 1.13 retrospective forecasts",
+  "splits": {
+    "test": [
+      "2025-10-09",
+      "2025-10-22"
+    ],
+    "train": [
+      "2025-07-01",
+      "2025-09-24"
+    ],
+    "tune": [
+      "2025-09-25",
+      "2025-10-08"
+    ]
+  },
+  "status": "inconclusive_not_promoted",
+  "symbols": [
+    "AAPL",
+    "AMZN",
+    "MSFT",
+    "NVDA",
+    "TSLA"
+  ],
+  "test_controls": {
+    "cash": {
+      "dates": 10.0,
+      "episodes": 50.0,
+      "execution_drag": 0.0,
+      "fees": 0.0,
+      "max_episode_drawdown_bps": 0.0,
+      "mean_daily_return_bps": 0.0,
+      "trade_count": 0.0,
+      "turnover": 0.0
+    },
+    "hold": {
+      "dates": 10.0,
+      "episodes": 50.0,
+      "execution_drag": 19.95737961422818,
+      "fees": 0.0,
+      "max_episode_drawdown_bps": 64.87456917019958,
+      "mean_daily_return_bps": -4.260980553870564,
+      "trade_count": 625.0,
+      "turnover": 99786.93668947052
+    },
+    "rule": {
+      "dates": 10.0,
+      "episodes": 50.0,
+      "execution_drag": 449.4907770435796,
+      "fees": 0.0,
+      "max_episode_drawdown_bps": 49.567664809322444,
+      "mean_daily_return_bps": -10.914639955849593,
+      "trade_count": 3124.0,
+      "turnover": 2247453.9044661424
+    }
+  },
+  "training": {
+    "CONTEXT_ONLY": {
+      "mean_elapsed_seconds": 433.8245599023309,
+      "parameters": 1035524,
+      "seeds": [
+        42,
+        43,
+        44
+      ],
+      "steps_per_seed": 92160
+    },
+    "JEV_ASSISTED": {
+      "mean_elapsed_seconds": 430.20309259733284,
+      "parameters": 1035524,
+      "seeds": [
+        42,
+        43,
+        44
+      ],
+      "steps_per_seed": 92160
+    }
+  },
+  "tune": {
+    "CONTEXT_ONLY": {
+      "mean_daily_return_bps": -0.14089660156914538,
+      "seed_points": [
+        {
+          "mean_daily_return_bps": 0.8500924270394153,
+          "seed": 42
+        },
+        {
+          "mean_daily_return_bps": 0.49885065389501526,
+          "seed": 43
+        },
+        {
+          "mean_daily_return_bps": -1.7716328856418675,
+          "seed": 44
+        }
+      ]
+    },
+    "JEV_ASSISTED": {
+      "mean_daily_return_bps": -1.40208835722975,
+      "seed_points": [
+        {
+          "mean_daily_return_bps": -2.712668609610365,
+          "seed": 42
+        },
+        {
+          "mean_daily_return_bps": -1.7692893498402544,
+          "seed": 43
+        },
+        {
+          "mean_daily_return_bps": 0.2756928877613696,
+          "seed": 44
+        }
+      ]
+    }
+  },
+  "vendor_pretraining_cutoff": "unknown"
+}

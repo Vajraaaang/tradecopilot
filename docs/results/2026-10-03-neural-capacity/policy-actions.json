@@ -1,0 +1,128 @@
+{
+  "schema_version": "rl-policy-action-diagnostic-v1",
+  "report_id": "3b0fee4fe7bba056ab71fffd823e4dc7cbcc0791d304150dddcae85b2d066a21",
+  "purpose": "Post-scoring descriptive diagnostic; does not change tuning selection or promotion criteria",
+  "rows": [
+    {
+      "cohort": "tune-ppo-64-42",
+      "decision_count": 15580,
+      "requested_actions": {
+        "flat": 4118,
+        "half_cap": 0,
+        "full_cap": 11462
+      },
+      "half_cap_fraction": 0.0
+    },
+    {
+      "cohort": "tune-ppo-64-43",
+      "decision_count": 15580,
+      "requested_actions": {
+        "flat": 0,
+        "half_cap": 15553,
+        "full_cap": 27
+      },
+      "half_cap_fraction": 0.9982670089858793
+    },
+    {
+      "cohort": "tune-ppo-64-44",
+      "decision_count": 15580,
+      "requested_actions": {
+        "flat": 4884,
+        "half_cap": 10523,
+        "full_cap": 173
+      },
+      "half_cap_fraction": 0.6754172015404365
+    },
+    {
+      "cohort": "tune-ppo-256-42",
+      "decision_count": 15580,
+      "requested_actions": {
+        "flat": 2160,
+        "half_cap": 1700,
+        "full_cap": 11720
+      },
+      "half_cap_fraction": 0.10911424903722722
+    },
+    {
+      "cohort": "tune-ppo-256-43",
+      "decision_count": 15580,
+      "requested_actions": {
+        "flat": 3155,
+        "half_cap": 7156,
+        "full_cap": 5269
+      },
+      "half_cap_fraction": 0.4593068035943517
+    },
+    {
+      "cohort": "tune-ppo-256-44",
+      "decision_count": 15580,
+      "requested_actions": {
+        "flat": 2365,
+        "half_cap": 6716,
+        "full_cap": 6499
+      },
+      "half_cap_fraction": 0.43106546854942235
+    },
+    {
+      "cohort": "tune-recurrent-256-42",
+      "decision_count": 15580,
+      "requested_actions": {
+        "flat": 0,
+        "half_cap": 15580,
+        "full_cap": 0
+      },
+      "half_cap_fraction": 1.0
+    },
+    {
+      "cohort": "tune-recurrent-256-43",
+      "decision_count": 15580,
+      "requested_actions": {
+        "flat": 2165,
+        "half_cap": 10,
+        "full_cap": 13405
+      },
+      "half_cap_fraction": 0.0006418485237483953
+    },
+    {
+      "cohort": "tune-recurrent-256-44",
+      "decision_count": 15580,
+      "requested_actions": {
+        "flat": 628,
+        "half_cap": 14920,
+        "full_cap": 32
+      },
+      "half_cap_fraction": 0.9576379974326059
+    },
+    {
+      "cohort": "test-neural-42",
+      "decision_count": 17220,
+      "requested_actions": {
+        "flat": 0,
+        "half_cap": 17220,
+        "full_cap": 0
+      },
+      "half_cap_fraction": 1.0
+    },
+    {
+      "cohort": "test-neural-43",
+      "decision_count": 17220,
+      "requested_actions": {
+        "flat": 1552,
+        "half_cap": 19,
+        "full_cap": 15649
+      },
+      "half_cap_fraction": 0.0011033681765389082
+    },
+    {
+      "cohort": "test-neural-44",
+      "decision_count": 17220,
+      "requested_actions": {
+        "flat": 290,
+        "half_cap": 16924,
+        "full_cap": 6
+      },
+      "half_cap_fraction": 0.9828106852497096
+    }
+  ],
+  "diagnostic_id": "c78c411bb1d1e1bc5e6c4a81c456ff735cf87933c7894f53857abd681b8fc6ed"
+}

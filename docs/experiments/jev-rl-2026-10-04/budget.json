@@ -1,0 +1,10 @@
+{
+  "registration_id": "96774383ecf524fe2968d28d4d423fbc84722a6b9dcdc8c2713d8980f5c2b005",
+  "base_prepared_data_id": "39486220a35922109079c4a58fe1b80d985de3feafbe4658fa2ba9d44a97b753",
+  "cache_id": "a5828202884e035b53231bd7392e6ade78547eb95a25628da6e78febdea2af76",
+  "shared_steps": 92160,
+  "max_seconds": 600,
+  "device": "cpu",
+  "probe_id": "9eecce87273ac68f3b71b807c8effb040b9d78003c8a43392b8cd601459eaa17",
+  "budget_id": "148a9912729adc4a7d87daf4431a75a0a69e140ffb62e95dfba684c02a2972e6"
+}

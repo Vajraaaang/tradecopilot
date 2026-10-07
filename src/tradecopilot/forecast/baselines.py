@@ -4,7 +4,7 @@ import time
 from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Self
+from typing import Any, Literal, Self
 
 import numpy as np
 import sklearn  # type: ignore[import-untyped]
@@ -105,7 +105,13 @@ def _softmax(values: NDArray[np.float64]) -> NDArray[np.float64]:
     return weights / weights.sum(axis=1, keepdims=True)
 
 
-def fit_model(name: str, examples: Sequence[ForecastExample], config: ForecastConfig) -> ModelArtifact:
+def fit_model(
+    name: str,
+    examples: Sequence[ForecastExample],
+    config: ForecastConfig,
+    *,
+    class_weight: Literal["balanced"] | None = "balanced",
+) -> ModelArtifact:
     if not examples or any(row.label is None or row.config_id != config.config_id for row in examples):
         raise ValueError("training requires labeled examples matching the config")
     targets = np.asarray([LABELS.index(str(row.label)) for row in examples], dtype=np.int64)
@@ -128,7 +134,7 @@ def fit_model(name: str, examples: Sequence[ForecastExample], config: ForecastCo
         scale = matrix.std(axis=0)
         scale[scale < 1e-12] = 1
         classifier = LogisticRegression(
-            max_iter=1000, random_state=config.seed, class_weight="balanced", solver="lbfgs"
+            max_iter=1000, random_state=config.seed, class_weight=class_weight, solver="lbfgs"
         )
         classifier.fit((matrix - mean) / scale, targets)
         parameters = {
@@ -138,7 +144,7 @@ def fit_model(name: str, examples: Sequence[ForecastExample], config: ForecastCo
             "intercept": classifier.intercept_.tolist(),
             "fit_settings": {
                 "C": 1.0,
-                "class_weight": "balanced",
+                "class_weight": class_weight,
                 "solver": "lbfgs",
                 "max_iter": 1000,
                 "seed": config.seed,
@@ -181,6 +187,7 @@ def predict_model(
     if model.config_id != config.config_id:
         raise ValueError("model config does not match prediction config")
     predictions = []
+    model_id = model.model_id
     for example in examples:
         started = time.perf_counter()
         values = model.probabilities([example])[0]
@@ -191,7 +198,7 @@ def predict_model(
             ForecastPrediction(
                 example_id=example.example_id,
                 dataset_id=dataset_id,
-                model_id=model.model_id,
+                model_id=model_id,
                 generated_at=datetime.now(UTC),
                 status="abstained" if abstained else "ok",
                 execution="local",

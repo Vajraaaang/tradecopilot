@@ -1,0 +1,27 @@
+{
+  "schema_version": "kronos-upstream-source-v1",
+  "repository": "https://github.com/shiyu-coder/Kronos",
+  "commit": "67b630e67f6a18c9e9be918d9b4337c960db1e9a",
+  "license": "MIT",
+  "modifications": [
+    "Remove the upstream relative sys.path append",
+    "Use the package-qualified model.module import"
+  ],
+  "files": {
+    "kronos.py": {
+      "upstream_path": "model/kronos.py",
+      "upstream_sha256": "0a5f90282e2039c2de0771473419715c845def154896dbd0f5747837e6241032",
+      "packaged_sha256": "2960874d0487078a0900b588b340f9679ab3e804f5750c28ab9922eff5723fc1"
+    },
+    "module.py": {
+      "upstream_path": "model/module.py",
+      "upstream_sha256": "a07edbadc0e96804c8158c021bbc6063bb7cc43b34d7fc470d5c8ff2005a409f",
+      "packaged_sha256": "a07edbadc0e96804c8158c021bbc6063bb7cc43b34d7fc470d5c8ff2005a409f"
+    },
+    "LICENSE": {
+      "upstream_path": "LICENSE",
+      "upstream_sha256": "acb2d194d378204e5f2be4dcd24d39ecac437903620c790c3315a96dab388fdc",
+      "packaged_sha256": "acb2d194d378204e5f2be4dcd24d39ecac437903620c790c3315a96dab388fdc"
+    }
+  }
+}

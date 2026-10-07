@@ -1,0 +1,31 @@
+{
+  "schema_version": "supervised-method-registry-v1",
+  "created_at": "2026-10-05T00:20:39.462696+00:00",
+  "registration_id": "3ac13c643a6e22018273fd6abc2d43cd2a239b68a7ae00ce61ceabd87a26601d",
+  "pretraining_clarification_id": "8f7ce9c4a31e92fc3f9c8e1a21645d04f56c59480685889b5389679dd59f82a2",
+  "before_learning_and_quality_scoring": true,
+  "comparison_scope": "selected_raw_primary_vs_raw_tune_selected_cpu",
+  "bootstrap": {
+    "ordering": "ascending_session_dates",
+    "blocks": "consecutive_nonoverlapping_starting_at_first_role_date",
+    "block_size_dates": 5,
+    "resample": "same_number_of_blocks_with_replacement",
+    "replicates": 1000,
+    "seed": 42,
+    "weighting": "ratio_of_total_case_sums_to_total_case_count",
+    "interval": "percentiles_2.5_97.5",
+    "test_block_count": 4
+  },
+  "conservative_retired_ranges": [
+    [
+      "2025-06-30",
+      "2025-10-23"
+    ],
+    [
+      "2025-11-03",
+      "2026-10-01"
+    ]
+  ],
+  "retirement_note": "Original registration records acquired corpus extents; the conservative registry also retires the documented broader November2025-September2026 period. Current source Jan2-June12,2025 is outside both.",
+  "method_registry_id": "15d6bcf51fb6bc20054d6d4857f70fbdf7a0ea0acd3cad8244a7ad400d8c8923"
+}

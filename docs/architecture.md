@@ -6,7 +6,19 @@ contracts. The forecasting workflow has its own durable observation store and
 saved-report server; the original desk keeps its operational journal and live
 strategy state machine.
 
-## Forecasting architecture
+## Kronos paper-account forecasting
+
+The [Kronos workflow](kronos-paper.md) uses a separate optional local model
+engine over verified Alpaca minute candles. The paper endpoint supplies safe
+account/clock reads; the data endpoint supplies explicitly selected IEX/SIP
+candles. A frozen development cohort compares mini/small with persistence and
+past-only momentum. Inventory-sealed bundles contain raw individual paths,
+publication times, complete failure records and source/model identities. Later
+outcomes produce a new report referencing its parent. The shared read-only
+server loads the matching report validator and static viewer without loading
+weights or accessing credentials. No trading client or order operation is added.
+
+## Jev forecasting architecture
 
 ```mermaid
 flowchart TD
@@ -42,6 +54,11 @@ All paths below are relative to `src/tradecopilot/`.
 
 | Module | Responsibility |
 | --- | --- |
+| `forecast/paper.py` | Bounded GET-only paper account/clock and market-data collection with Keychain credentials and explicit feeds |
+| `forecast/kronos.py`, `_vendor/kronos/` | Hash-pinned local safetensors, licensed upstream source, causal OHLCV input validation and individual CPU forecast paths |
+| `forecast/kronos_study.py`, `forecast/kronos_run.py` | Fixed common cohorts, past-only controls, retained failures, raw diagnostics and prospective records |
+| `forecast/kronos_report.py` | Immutable inventory, original publication checks and source-specific later outcome joins |
+| `forecast/kronos_cli.py`, `forecast/kronos_dashboard.html` | Explicit fetch/pilot/grade/serve commands and read-only saved price-path inspection |
 | `forecast/contracts.py` | Frozen configuration, observation, example, dataset and prediction contracts; content identities and feature/label versions |
 | `forecast/sessions.py` | XNYS regular-session bounds, including holidays, early closes and DST |
 | `forecast/data.py` | SQLite WAL observations, prediction records, sanitized events and persistent atomic collection gate |
@@ -50,6 +67,10 @@ All paths below are relative to `src/tradecopilot/`.
 | `forecast/dataset.py` | Deterministic dataset construction, immutable exports and manifest/content verification |
 | `forecast/demo.py` | Deterministic synthetic observation generation for the offline demo |
 | `forecast/historical.py` | Bounded archive/CSV import, source hashes, explicit historical provenance, bar-end replay timing and causal prior-session close |
+| `forecast/bars.py` | Separate immutable OHLCV v2 store retaining exact bar fields and primer-session evidence |
+| `forecast/ohlcv_features.py` | Causal multi-window OHLCV/volume/session features with explicit missing history |
+| `forecast/ohlcv_models.py` | Training-only v2 linear/boosting models and validated non-executable JSON inference |
+| `forecast/ohlcv_study.py` | Frozen five-arm validation development comparison, source/split binding and audits |
 | `forecast/baselines.py` | Training-only CPU model fitting/scaling, validation temperature calibration, prediction and JSON model artifacts |
 | `forecast/jev.py` | Pinned typed Jev forecast requests, probability validation, prospective timing, shared ledger/run caps and clearly labeled local fixtures |
 | `forecast/evaluation.py` | Purged session splits, probability metrics, calibration/coverage diagnostics and session-level bootstrap intervals |
@@ -205,3 +226,8 @@ data quality, and optional explanation versions. Secret-like keys and account
 identifiers are redacted before persistence. High-volume observations are
 bounded by `raw_snapshot_retention_rows`; transitions and session locks are not
 pruned.
+
+The optional selective-accuracy research path uses `forecast/alpaca_history.py`
+for bounded, authenticated historical GET requests, `forecast/selective.py` for
+chronological splits/calibration/selection criteria, and `forecast/selective_study.py`
+for frozen CPU tuning and final-test artifacts. It preserves the live adviser defaults.

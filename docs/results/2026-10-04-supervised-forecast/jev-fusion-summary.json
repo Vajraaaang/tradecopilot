@@ -1,0 +1,442 @@
+{
+  "arms": [
+    "TRAIN_PRIOR",
+    "RAW_JEV",
+    "CONTEXT_LR",
+    "JEV_FUSION_LR"
+  ],
+  "availability": {
+    "test": {
+      "all_cases": 50,
+      "availability_coverage": 0.9,
+      "available": 45,
+      "unavailable": 5
+    },
+    "train": {
+      "all_cases": 300,
+      "availability_coverage": 0.8666666666666667,
+      "available": 260,
+      "unavailable": 40
+    },
+    "tune": {
+      "all_cases": 50,
+      "availability_coverage": 0.7,
+      "available": 35,
+      "unavailable": 15
+    }
+  },
+  "availability_mode": "hypothetical_as_of_plus_60_seconds",
+  "confirmatory": false,
+  "evidence": "exploratory_consumed_dates; not fresh confirmation; no Jev fine-tuning or new calls",
+  "fresh_model_selection_allowed": false,
+  "fusion_features": "Four raw Jev direction/confidence fields added to context; unavailable fields zero",
+  "identities": {
+    "cache_id": "a5828202884e035b53231bd7392e6ade78547eb95a25628da6e78febdea2af76",
+    "case_order_hash": "b21439d97eb6f551c0f8a2f6baa3056e368eaa0a5a20c884eda93fb672025bc0",
+    "inventory_id": "91f4c76d9895387885631d45b43976775c4fe2684d5ed3bb8be64d95a7b63645",
+    "model_id": "4093a244f3bad052ca31f3a3fd26ab7284998ce945c979bb9c09cf4e4cf0853f",
+    "old_prepared_data_id": "39486220a35922109079c4a58fe1b80d985de3feafbe4658fa2ba9d44a97b753",
+    "old_registration_id": "96774383ecf524fe2968d28d4d423fbc84722a6b9dcdc8c2713d8980f5c2b005",
+    "predictions_id": "e7f2192dd5b2073db12028725b0b508a57847ee4b461017061ec30348eb6bd05",
+    "protocol_id": "4ca522bba3d23c39fc783deb7415b5bc77f6aea6dcf22ce16f6d9c762bbed1c9",
+    "report_id": "3fd82fa91684d2e5c6b8104d31dc0c4b8160b21d510b8e00bb067a68fe70e2b2",
+    "source_data_id": "4fb1463dbc6ee1b3e68c3a85f4048bda5a8ed4dd25e4587d5b5f4f8db2ae0489"
+  },
+  "jev_weights_trained": false,
+  "matched_available_definition": "The identical ok/abstained Jev subset for every arm; conditional available-only quality",
+  "method": "Fixed TRAIN-only multinomial logistic regression; no tuning, calibration, gate or neural fitting",
+  "metric_units": "Accuracy/coverage fractions; log loss natural logarithm; multiclass Brier sum",
+  "metrics": {
+    "CONTEXT_LR": {
+      "test": {
+        "all_cases": {
+          "accuracy": 0.44,
+          "balanced_accuracy": 0.4265795206971677,
+          "brier_score": 0.6717537938298286,
+          "coverage": 1.0,
+          "eligible": 50,
+          "jev_availability_coverage": 0.9,
+          "jev_available": 45,
+          "log_loss": 1.1038006549250803,
+          "macro_f1": 0.4077922077922078,
+          "scored": 50
+        },
+        "matched_available": {
+          "accuracy": 0.4,
+          "balanced_accuracy": 0.33769063180827885,
+          "brier_score": 0.6888494275439772,
+          "coverage": 1.0,
+          "eligible": 45,
+          "jev_availability_coverage": 1.0,
+          "jev_available": 45,
+          "log_loss": 1.1311907080074484,
+          "macro_f1": 0.2839506172839506,
+          "scored": 45
+        }
+      },
+      "train": {
+        "all_cases": {
+          "accuracy": 0.52,
+          "balanced_accuracy": 0.4901903342986758,
+          "brier_score": 0.5791124596131647,
+          "coverage": 1.0,
+          "eligible": 300,
+          "jev_availability_coverage": 0.8666666666666667,
+          "jev_available": 260,
+          "log_loss": 0.9650342243877412,
+          "macro_f1": 0.484507534223144,
+          "scored": 300
+        },
+        "matched_available": {
+          "accuracy": 0.5384615384615384,
+          "balanced_accuracy": 0.499706572769953,
+          "brier_score": 0.5664308250591823,
+          "coverage": 1.0,
+          "eligible": 260,
+          "jev_availability_coverage": 1.0,
+          "jev_available": 260,
+          "log_loss": 0.9462512083534143,
+          "macro_f1": 0.4957872278268532,
+          "scored": 260
+        }
+      },
+      "tune": {
+        "all_cases": {
+          "accuracy": 0.42,
+          "balanced_accuracy": 0.4535714285714285,
+          "brier_score": 0.6977659211284636,
+          "coverage": 1.0,
+          "eligible": 50,
+          "jev_availability_coverage": 0.7,
+          "jev_available": 35,
+          "log_loss": 1.159917651287775,
+          "macro_f1": 0.40676883780332057,
+          "scored": 50
+        },
+        "matched_available": {
+          "accuracy": 0.37142857142857144,
+          "balanced_accuracy": 0.38333333333333336,
+          "brier_score": 0.6736078385511778,
+          "coverage": 1.0,
+          "eligible": 35,
+          "jev_availability_coverage": 1.0,
+          "jev_available": 35,
+          "log_loss": 1.076888688567459,
+          "macro_f1": 0.3061061061061061,
+          "scored": 35
+        }
+      }
+    },
+    "JEV_FUSION_LR": {
+      "test": {
+        "all_cases": {
+          "accuracy": 0.44,
+          "balanced_accuracy": 0.4265795206971677,
+          "brier_score": 0.6714976854229048,
+          "coverage": 1.0,
+          "eligible": 50,
+          "jev_availability_coverage": 0.9,
+          "jev_available": 45,
+          "log_loss": 1.103265416686556,
+          "macro_f1": 0.4077922077922078,
+          "scored": 50
+        },
+        "matched_available": {
+          "accuracy": 0.4,
+          "balanced_accuracy": 0.33769063180827885,
+          "brier_score": 0.6895830865513389,
+          "coverage": 1.0,
+          "eligible": 45,
+          "jev_availability_coverage": 1.0,
+          "jev_available": 45,
+          "log_loss": 1.1319578281611808,
+          "macro_f1": 0.2839506172839506,
+          "scored": 45
+        }
+      },
+      "train": {
+        "all_cases": {
+          "accuracy": 0.5266666666666666,
+          "balanced_accuracy": 0.4978014742398625,
+          "brier_score": 0.5785437320789384,
+          "coverage": 1.0,
+          "eligible": 300,
+          "jev_availability_coverage": 0.8666666666666667,
+          "jev_available": 260,
+          "log_loss": 0.9642662147169051,
+          "macro_f1": 0.49299007000733813,
+          "scored": 300
+        },
+        "matched_available": {
+          "accuracy": 0.5423076923076923,
+          "balanced_accuracy": 0.5044014084507041,
+          "brier_score": 0.5659808202763325,
+          "coverage": 1.0,
+          "eligible": 260,
+          "jev_availability_coverage": 1.0,
+          "jev_available": 260,
+          "log_loss": 0.9456154094304439,
+          "macro_f1": 0.5003325306730879,
+          "scored": 260
+        }
+      },
+      "tune": {
+        "all_cases": {
+          "accuracy": 0.44,
+          "balanced_accuracy": 0.4773809523809524,
+          "brier_score": 0.6973371701629903,
+          "coverage": 1.0,
+          "eligible": 50,
+          "jev_availability_coverage": 0.7,
+          "jev_available": 35,
+          "log_loss": 1.1593679933598962,
+          "macro_f1": 0.42116402116402113,
+          "scored": 50
+        },
+        "matched_available": {
+          "accuracy": 0.4,
+          "balanced_accuracy": 0.41111111111111104,
+          "brier_score": 0.6736184726450483,
+          "coverage": 1.0,
+          "eligible": 35,
+          "jev_availability_coverage": 1.0,
+          "jev_available": 35,
+          "log_loss": 1.0772203440207997,
+          "macro_f1": 0.32108703130374955,
+          "scored": 35
+        }
+      }
+    },
+    "RAW_JEV": {
+      "test": {
+        "all_cases": {
+          "accuracy": 0.24,
+          "balanced_accuracy": 0.2318082788671024,
+          "brier_score": 0.8797386666666667,
+          "coverage": 1.0,
+          "eligible": 50,
+          "jev_availability_coverage": 0.9,
+          "jev_available": 45,
+          "log_loss": 1.4349135071300787,
+          "macro_f1": 0.21552028218694885,
+          "scored": 50
+        },
+        "matched_available": {
+          "accuracy": 0.26666666666666666,
+          "balanced_accuracy": 0.2540305010893246,
+          "brier_score": 0.8978133333333334,
+          "coverage": 1.0,
+          "eligible": 45,
+          "jev_availability_coverage": 1.0,
+          "jev_available": 45,
+          "log_loss": 1.4654052643238433,
+          "macro_f1": 0.24155844155844153,
+          "scored": 45
+        }
+      },
+      "train": {
+        "all_cases": {
+          "accuracy": 0.36333333333333334,
+          "balanced_accuracy": 0.3500775622032129,
+          "brier_score": 0.7773588888888889,
+          "coverage": 1.0,
+          "eligible": 300,
+          "jev_availability_coverage": 0.8666666666666667,
+          "jev_available": 260,
+          "log_loss": 1.3418019631896496,
+          "macro_f1": 0.35154836345312535,
+          "scored": 300
+        },
+        "matched_available": {
+          "accuracy": 0.3730769230769231,
+          "balanced_accuracy": 0.3678167489787208,
+          "brier_score": 0.7924807692307692,
+          "coverage": 1.0,
+          "eligible": 260,
+          "jev_availability_coverage": 1.0,
+          "jev_available": 260,
+          "log_loss": 1.3767022760630927,
+          "macro_f1": 0.3676836245687394,
+          "scored": 260
+        }
+      },
+      "tune": {
+        "all_cases": {
+          "accuracy": 0.28,
+          "balanced_accuracy": 0.29285714285714287,
+          "brier_score": 0.8096359999999998,
+          "coverage": 1.0,
+          "eligible": 50,
+          "jev_availability_coverage": 0.7,
+          "jev_available": 35,
+          "log_loss": 1.3729226202674303,
+          "macro_f1": 0.2788205762241955,
+          "scored": 50
+        },
+        "matched_available": {
+          "accuracy": 0.34285714285714286,
+          "balanced_accuracy": 0.36666666666666664,
+          "brier_score": 0.8424514285714286,
+          "coverage": 1.0,
+          "eligible": 35,
+          "jev_availability_coverage": 1.0,
+          "jev_available": 35,
+          "log_loss": 1.4485767118343602,
+          "macro_f1": 0.34299516908212563,
+          "scored": 35
+        }
+      }
+    },
+    "TRAIN_PRIOR": {
+      "test": {
+        "all_cases": {
+          "accuracy": 0.36,
+          "balanced_accuracy": 0.3333333333333333,
+          "brier_score": 0.6722666666666666,
+          "coverage": 1.0,
+          "eligible": 50,
+          "jev_availability_coverage": 0.9,
+          "jev_available": 45,
+          "log_loss": 1.1072081322875404,
+          "macro_f1": 0.17647058823529413,
+          "scored": 50
+        },
+        "matched_available": {
+          "accuracy": 0.4,
+          "balanced_accuracy": 0.3333333333333333,
+          "brier_score": 0.667288888888889,
+          "coverage": 1.0,
+          "eligible": 45,
+          "jev_availability_coverage": 1.0,
+          "jev_available": 45,
+          "log_loss": 1.1012881811654676,
+          "macro_f1": 0.1904761904761905,
+          "scored": 45
+        }
+      },
+      "train": {
+        "all_cases": {
+          "accuracy": 0.41333333333333333,
+          "balanced_accuracy": 0.3333333333333333,
+          "brier_score": 0.6562666666666667,
+          "coverage": 1.0,
+          "eligible": 300,
+          "jev_availability_coverage": 0.8666666666666667,
+          "jev_available": 260,
+          "log_loss": 1.0833304681759552,
+          "macro_f1": 0.19496855345911948,
+          "scored": 300
+        },
+        "matched_available": {
+          "accuracy": 0.4307692307692308,
+          "balanced_accuracy": 0.3333333333333333,
+          "brier_score": 0.6527589743589743,
+          "coverage": 1.0,
+          "eligible": 260,
+          "jev_availability_coverage": 1.0,
+          "jev_available": 260,
+          "log_loss": 1.0784659356626767,
+          "macro_f1": 0.2007168458781362,
+          "scored": 260
+        }
+      },
+      "tune": {
+        "all_cases": {
+          "accuracy": 0.28,
+          "balanced_accuracy": 0.3333333333333333,
+          "brier_score": 0.6866666666666665,
+          "coverage": 1.0,
+          "eligible": 50,
+          "jev_availability_coverage": 0.7,
+          "jev_available": 35,
+          "log_loss": 1.1266355642542283,
+          "macro_f1": 0.14583333333333334,
+          "scored": 50
+        },
+        "matched_available": {
+          "accuracy": 0.34285714285714286,
+          "balanced_accuracy": 0.3333333333333333,
+          "brier_score": 0.6667809523809524,
+          "coverage": 1.0,
+          "eligible": 35,
+          "jev_availability_coverage": 1.0,
+          "jev_available": 35,
+          "log_loss": 1.0967380603869288,
+          "macro_f1": 0.1702127659574468,
+          "scored": 35
+        }
+      }
+    }
+  },
+  "new_jev_calls": 0,
+  "paired_test_nll": {
+    "cases": 50,
+    "comparison": "JEV_FUSION_LR minus CONTEXT_LR; negative favors fusion",
+    "confirmatory": false,
+    "dates": 10,
+    "high": 0.0014487809403730552,
+    "low": -0.003391931634000322,
+    "mean_difference": -0.0005352382385241816,
+    "method": "whole_date_paired_bootstrap_95pct; descriptive only",
+    "resamples": 1000,
+    "seed": 42
+  },
+  "public_id": "2491f14322191d77a2531bc6721cbb251ee3d1eaefcbb1b2e7ddd507e4be2307",
+  "raw_jev_available_only_test": {
+    "accuracy": 0.26666666666666666,
+    "balanced_accuracy": 0.2540305010893246,
+    "brier_score": 0.8978133333333334,
+    "coverage": 1.0,
+    "eligible": 45,
+    "jev_availability_coverage": 1.0,
+    "jev_available": 45,
+    "log_loss": 1.4654052643238433,
+    "macro_f1": 0.24155844155844153,
+    "scored": 45
+  },
+  "raw_jev_fallback": "Raw Jev uses TRAIN class prior for unavailable forecasts; every case remains in all-case metrics",
+  "schema_version": "jev-fusion-public-v1",
+  "settings": {
+    "C": 0.01,
+    "class_weight": null,
+    "max_iter": 1000,
+    "objective": "unweighted_multinomial_log_loss",
+    "random_state": 42,
+    "solver": "lbfgs",
+    "threads": 1
+  },
+  "shared_metadata": "Both LR arms include the same Jev status, availability and timing metadata",
+  "source_attribution": "Alpaca SIP raw bars; cached Jev 1.13 retrospective forecasts; vendor cutoff unknown",
+  "splits": {
+    "test": {
+      "cases": 50,
+      "date_range": [
+        "2025-10-09",
+        "2025-10-22"
+      ],
+      "sessions": 10
+    },
+    "train": {
+      "cases": 300,
+      "date_range": [
+        "2025-07-01",
+        "2025-09-24"
+      ],
+      "sessions": 60
+    },
+    "tune": {
+      "cases": 50,
+      "date_range": [
+        "2025-09-25",
+        "2025-10-08"
+      ],
+      "sessions": 10
+    }
+  },
+  "target": {
+    "anchor": "exact cache as_of minute-bar close",
+    "flat_threshold_bps_inclusive": 10,
+    "horizon_minutes": 15,
+    "outcome": "exact target minute-bar close"
+  }
+}

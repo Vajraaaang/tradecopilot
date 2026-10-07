@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import secrets
 import webbrowser
+from collections.abc import Callable
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from importlib.resources import files
@@ -17,12 +18,16 @@ from tradecopilot.forecast.experiment import load_report
 
 def create_server(
     report_path: Path, host: str = "127.0.0.1", port: int = 8766,
+    *, loader: Callable[[Path], dict[str, Any]] | None = None,
+    dashboard_name: str = "dashboard.html",
 ) -> ThreadingHTTPServer:
     """Bind a report viewer; the caller owns its serving and shutdown lifecycle."""
     if host not in {"127.0.0.1", "0.0.0.0"}:
         raise ValueError("forecast service host must be 127.0.0.1 or 0.0.0.0")
     report_path = report_path.resolve()
-    dashboard = files("tradecopilot.forecast").joinpath("dashboard.html").read_text(encoding="utf-8")
+    if dashboard_name not in {"dashboard.html", "kronos_dashboard.html"}:
+        raise ValueError("unknown forecast dashboard")
+    dashboard = files("tradecopilot.forecast").joinpath(dashboard_name).read_text(encoding="utf-8")
 
     class ReportHandler(BaseHTTPRequestHandler):
         server_version = "ForecastReport"
@@ -40,7 +45,7 @@ def create_server(
                 self._respond(HTTPStatus.OK, body, "text/html; charset=utf-8", nonce)
             elif route in {"/api/report", "/health"}:
                 try:
-                    report = load_report(report_path)
+                    report = (loader or load_report)(report_path)
                 except (ValueError, OSError):
                     self._json(HTTPStatus.SERVICE_UNAVAILABLE, {
                         "error": "Report unavailable: bundle integrity verification failed.",

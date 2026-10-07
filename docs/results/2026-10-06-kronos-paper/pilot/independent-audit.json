@@ -1,0 +1,121 @@
+{
+  "audit_script_sha256": "ac8681dda89ba11e9a52fcdbfcff6ef675bc22999366ddb0b0198cd3bd6caa48",
+  "checks_total": 160958,
+  "cohort": {
+    "eligible": 100,
+    "exact_target_minutes": 15,
+    "excluded": 0,
+    "individual_neural_paths_checked": 4200,
+    "input_bars_per_case": 60,
+    "model_case_predictions_checked": 400,
+    "models": 4,
+    "neural_forecast_rows_checked": 63000,
+    "planned": 100
+  },
+  "implementation_commit": "3abbef655b8776e56418e0d80049ad8470b2eb9b",
+  "limitations": [
+    "Four-session development pilot, not confirmation.",
+    "Original publication and inference timestamps precede all future targets; outcomes remain pending.",
+    "Raw sample bands are uncalibrated; nonphysical sample rows retained.",
+    "UTC registration-to-publication interval 1149.28s differs from 384.07s of recorded monotonic model loops/calls. Cause of765.22s discrepancy unverified; no end-to-end speed claim.",
+    "Zero orders/new Jev calls supported by declared counts and read-only execution scope; external broker order history not queried."
+  ],
+  "maximum_numerical_differences": {
+    "mini.direction_accuracy": 0.0,
+    "mini.direction_accuracy_errors_as_incorrect": 0.0,
+    "mini.forecast_availability": 0.0,
+    "mini.interval_nominal_mass": 0.0,
+    "mini.lower_close": 0.0,
+    "mini.mean_close": 0.0,
+    "mini.path_mae_bps": 1.7763568394002505e-15,
+    "mini.raw_interval_coverage": 0.0,
+    "mini.terminal_mae_bps": 3.552713678800501e-15,
+    "mini.upper_close": 0.0,
+    "momentum.direction_accuracy": 0.0,
+    "momentum.direction_accuracy_errors_as_incorrect": 0.0,
+    "momentum.forecast_availability": 0.0,
+    "momentum.lower_close": 0.0,
+    "momentum.mean_close": 0.0,
+    "momentum.path_mae_bps": 7.105427357601002e-15,
+    "momentum.terminal_mae_bps": 0.0,
+    "momentum.upper_close": 0.0,
+    "persistence.direction_accuracy": 0.0,
+    "persistence.direction_accuracy_errors_as_incorrect": 0.0,
+    "persistence.forecast_availability": 0.0,
+    "persistence.lower_close": 0.0,
+    "persistence.mean_close": 0.0,
+    "persistence.path_mae_bps": 0.0,
+    "persistence.terminal_mae_bps": 1.7763568394002505e-15,
+    "persistence.upper_close": 0.0,
+    "prospective.mini.lower_close": 0.0,
+    "prospective.mini.mean_close": 0.0,
+    "prospective.mini.upper_close": 0.0,
+    "prospective.small.lower_close": 0.0,
+    "prospective.small.mean_close": 0.0,
+    "prospective.small.upper_close": 0.0,
+    "small.direction_accuracy": 0.0,
+    "small.direction_accuracy_errors_as_incorrect": 0.0,
+    "small.forecast_availability": 0.0,
+    "small.interval_nominal_mass": 0.0,
+    "small.lower_close": 0.0,
+    "small.mean_close": 0.0,
+    "small.path_mae_bps": 0.0,
+    "small.raw_interval_coverage": 1.1102230246251565e-16,
+    "small.terminal_mae_bps": 3.552713678800501e-15,
+    "small.upper_close": 0.0
+  },
+  "passed": true,
+  "private_audit_file_sha256": "6b47a0e57e6e6e875f068ab7f447ad9616440d1e64a2df6904042f1e7fe88b49",
+  "replays": [
+    {
+      "bitwise_equal": true,
+      "fixed_case_index": 0,
+      "maximum_absolute_difference": 0.0,
+      "model": "mini",
+      "seed": 42,
+      "shape": [
+        20,
+        15,
+        6
+      ]
+    },
+    {
+      "bitwise_equal": true,
+      "fixed_case_index": 99,
+      "maximum_absolute_difference": 0.0,
+      "model": "mini",
+      "seed": 141,
+      "shape": [
+        20,
+        15,
+        6
+      ]
+    },
+    {
+      "bitwise_equal": true,
+      "fixed_case_index": 0,
+      "maximum_absolute_difference": 0.0,
+      "model": "small",
+      "seed": 42,
+      "shape": [
+        20,
+        15,
+        6
+      ]
+    },
+    {
+      "bitwise_equal": true,
+      "fixed_case_index": 99,
+      "maximum_absolute_difference": 0.0,
+      "model": "small",
+      "seed": 141,
+      "shape": [
+        20,
+        15,
+        6
+      ]
+    }
+  ],
+  "report_id": "a659189b4a15a0e8965575ef9cd661517102dbcecdbc9140243a99dbdea554b6",
+  "schema_version": "kronos-paper-public-audit-v1"
+}
