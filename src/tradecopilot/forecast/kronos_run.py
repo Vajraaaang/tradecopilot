@@ -17,7 +17,7 @@ from numpy.typing import NDArray
 from tradecopilot.forecast.bars import load_bar_dataset
 from tradecopilot.forecast.contracts import content_hash
 from tradecopilot.forecast.experiment import source_provenance
-from tradecopilot.forecast.kronos_report import write_report
+from tradecopilot.forecast.kronos_report import validate_prospective_grid, write_report
 from tradecopilot.forecast.kronos_study import baseline_paths, build_cases, future_grid, price_metrics
 
 DATES = tuple(date(2026, 10, d) for d in (1, 2, 5, 6))
@@ -25,6 +25,18 @@ DATES = tuple(date(2026, 10, d) for d in (1, 2, 5, 6))
 
 def _encode(value: Any) -> bytes:
     return (json.dumps(value, sort_keys=True, allow_nan=False) + "\n").encode()
+
+
+def _validate_paths(value: Any, samples: int) -> NDArray[np.float64]:
+    paths = np.asarray(value, dtype=np.float64)
+    if paths.shape != (samples, 15, 6) or not np.isfinite(paths).all() or (paths[:, :, 3] <= 0).any():
+        raise ValueError("invalid forecast paths")
+    return paths
+
+
+def _progress(path: Path, stage: str, **details: Any) -> None:
+    path.write_bytes(_encode({"stage": stage, **details}))
+    path.chmod(0o600)
 
 
 def _forecast(paths: NDArray[np.float64] | None, elapsed: float, error: str | None = None) -> dict[str, Any]:
@@ -54,6 +66,8 @@ def run_pilot(
     engine_factory: Callable[..., Any] | None = None,
     prospective: bool = True,
 ) -> Path:
+    run_started = time.monotonic()
+    started_at = datetime.now(UTC).isoformat()
     if output_dir.exists():
         raise FileExistsError("choose a new immutable Kronos pilot directory")
     if (
@@ -62,9 +76,10 @@ def run_pilot(
         or not 1 <= samples <= 32
     ):
         raise ValueError("absolute paths and 1-32 samples are required")
-    if engine_factory is None:
-        from tradecopilot.forecast.kronos import KronosEngine
+    from tradecopilot.forecast.kronos import KronosEngine
 
+    native_engine = engine_factory is None or engine_factory is KronosEngine
+    if engine_factory is None:
         engine_factory = KronosEngine
     bars, source = load_bar_dataset(bars_dir)
     metadata = source["source_metadata"]
@@ -126,47 +141,77 @@ def run_pilot(
     predictions: dict[str, dict[str, NDArray[np.float64] | None]] = {}
     engines: dict[str, Any] = {}
     progress_path = output_dir.parent / (output_dir.name + "-progress.json")
+    preparation_seconds = time.monotonic() - run_started
     for variant in ("mini", "small"):
-        engine = engine_factory(variant, cache_dir, threads=1)
-        engines[variant] = engine
-        stable_meta = json.loads(_encode(engine.metadata))
+        _progress(progress_path, "initialization", model=variant)
+        initialization_started = time.monotonic()
+        initialization_error = None
+        engine = None
+        try:
+            assert engine_factory is not None
+            engine = engine_factory(variant, cache_dir, threads=1)
+            stable_meta = json.loads(_encode(engine.metadata))
+            if time.monotonic() - initialization_started >= 900:
+                raise TimeoutError("registered model compute budget exhausted")
+            engines[variant] = engine
+        except Exception as exc:
+            # Native cache/source validation remains a fatal integrity failure.
+            if native_engine and isinstance(exc, ValueError):
+                _progress(progress_path, "failed", phase="initialization", model=variant,
+                          error_type=type(exc).__name__)
+                raise
+            initialization_error = type(exc).__name__
+            engine = None
+            stable_meta = {"variant": variant, "initialization_status": "error"}
+        initialization_seconds = time.monotonic() - initialization_started
         predictions[variant] = {}
         started = time.monotonic()
         failures = []
         for index, c in enumerate(cases):
-            progress_path.write_bytes(
-                _encode({"stage": "inference", "model": variant, "case": index + 1, "cases": len(cases)})
-            )
-            progress_path.chmod(0o600)
-            paths, reason = None, None
+            _progress(progress_path, "inference", model=variant, case=index + 1, cases=len(cases))
+            paths, reason = None, initialization_error
+            phase = "initialization" if initialization_error else "historical"
             t0 = time.monotonic()
-            try:
-                if t0 - started >= 900:
-                    raise TimeoutError("registered model compute budget exhausted")
-                paths = engine.predict(c.history, c.future_times, seed=42 + index, samples=samples)
-                # Independent shape/value scoring validator runs without outcome-dependent selection.
-                if paths.shape != (samples, 15, 6) or not np.isfinite(paths).all() or (paths[:, :, 3] <= 0).any():
-                    raise ValueError("invalid paths")
-            except Exception as exc:
-                reason = type(exc).__name__
-                failures.append({"case_id": c.case_id, "error_type": reason})
-                paths = None
+            if reason is None:
+                try:
+                    assert engine is not None
+                    if initialization_seconds + t0 - started >= 900:
+                        raise TimeoutError("registered model compute budget exhausted")
+                    paths = _validate_paths(engine.predict(c.history, c.future_times, seed=42 + index, samples=samples),
+                                            samples)
+                    if initialization_seconds + time.monotonic() - started >= 900:
+                        raise TimeoutError("registered model compute budget exhausted")
+                except Exception as exc:
+                    reason = type(exc).__name__
+                    paths = None
+            if reason is not None:
+                failures.append({"case_id": c.case_id, "error_type": reason, "phase": phase})
             predictions[variant][c.case_id] = paths
             rows[index]["forecasts"][variant] = _forecast(paths, time.monotonic() - t0, reason)
+            if reason is not None:
+                rows[index]["forecasts"][variant]["failure_phase"] = phase
             if paths is not None:
                 raw_paths[f"{variant}_{index}"] = paths
-        if json.loads(_encode(engine.metadata)) != stable_meta:
+        if engine is not None and json.loads(_encode(engine.metadata)) != stable_meta:
             raise ValueError("model provenance changed during inference")
+        metrics = price_metrics(cases, predictions[variant], sample_intervals=True)
+        diagnostics = {
+            key: sum(row["forecasts"][variant].get("diagnostics", {}).get(key, 0) for row in rows)
+            for key in ("paths", "rows", "nonphysical_ohlc_rows", "negative_volume_rows", "negative_amount_rows")
+        }
+        historical_seconds = time.monotonic() - started
         models[variant] = {
             "metadata": stable_meta,
-            "elapsed_seconds": time.monotonic() - started,
+            "initialization": {"status": "error" if initialization_error else "ok",
+                               "error_type": initialization_error, "phase": "initialization"},
+            "timing": {"initialization_seconds": initialization_seconds, "historical_seconds": historical_seconds,
+                       "prospective_seconds": 0.0},
+            "elapsed_seconds": initialization_seconds + historical_seconds,
             "failures": failures,
-            "metrics": price_metrics(cases, predictions[variant], sample_intervals=True),
-            "diagnostics": {
-                key: sum(row["forecasts"][variant].get("diagnostics", {}).get(key, 0) for row in rows)
-                for key in ("paths", "rows", "nonphysical_ohlc_rows", "negative_volume_rows", "negative_amount_rows")
-            },
+            "metrics": metrics,
+            "diagnostics": diagnostics,
         }
+    controls_started = time.monotonic()
     for name in ("persistence", "momentum"):
         predictions[name] = {}
         failures = []
@@ -185,6 +230,7 @@ def run_pilot(
             "metrics": price_metrics(cases, predictions[name], sample_intervals=False),
             "failures": failures,
         }
+    controls_seconds = time.monotonic() - controls_started
     prospective_unavailable = []
     if prospective:
         recorded_at = datetime.now(UTC)
@@ -192,6 +238,7 @@ def run_pilot(
             history = tuple(sorted((b for b in bars if b.symbol == symbol), key=lambda b: b.end_time)[-60:])
             try:
                 future, kind = future_grid(history, metadata["clock"], recorded_at)
+                validate_prospective_grid([t.isoformat() for t in future])
             except ValueError as exc:
                 prospective_unavailable.append({"symbol": symbol, "reason": str(exc)})
                 continue
@@ -207,20 +254,39 @@ def run_pilot(
                 "outcome_status": "pending",
                 "forecasts": {},
             }
-            for variant, engine in engines.items():
+            for variant in ("mini", "small"):
+                model = models[variant]
+                engine = engines.get(variant)
                 t0 = time.monotonic()
-                try:
-                    p = engine.predict(history, future, seed=42, samples=samples)
-                    generated_at = datetime.now(UTC)
-                    if generated_at >= future[-1]:
-                        raise ValueError("forecast target expired before publication")
-                    row["forecasts"][variant] = _forecast(p, time.monotonic() - t0) | {
-                        "generated_at": generated_at.isoformat(),
-                        "outcome_status": "pending",
-                    }
-                    raw_paths[f"pending_{variant}_{symbol}"] = p
-                except Exception as exc:
-                    row["forecasts"][variant] = _forecast(None, time.monotonic() - t0, type(exc).__name__)
+                reason = model["initialization"]["error_type"]
+                phase = "initialization" if reason else "prospective"
+                if reason is None:
+                    try:
+                        assert engine is not None
+                        _progress(progress_path, "prospective", model=variant, symbol=symbol)
+                        if model["elapsed_seconds"] >= 900:
+                            raise TimeoutError("registered model compute budget exhausted")
+                        p = _validate_paths(engine.predict(history, future, seed=42, samples=samples), samples)
+                        if model["elapsed_seconds"] + time.monotonic() - t0 >= 900:
+                            raise TimeoutError("registered model compute budget exhausted")
+                        generated_at = datetime.now(UTC)
+                        if generated_at >= future[0]:
+                            raise ValueError("forecast first target expired before publication")
+                        row["forecasts"][variant] = _forecast(p, time.monotonic() - t0) | {
+                            "generated_at": generated_at.isoformat(),
+                            "outcome_status": "pending",
+                        }
+                        raw_paths[f"pending_{variant}_{symbol}"] = p
+                    except Exception as exc:
+                        reason = type(exc).__name__
+                elapsed = time.monotonic() - t0
+                model["timing"]["prospective_seconds"] += elapsed
+                model["elapsed_seconds"] += elapsed
+                if reason is not None:
+                    row["forecasts"][variant] = _forecast(None, elapsed, reason) | {"failure_phase": phase}
+                    model["failures"].append({"case_id": row["case_id"], "error_type": reason, "phase": phase})
+                if engine is not None and json.loads(_encode(engine.metadata)) != model["metadata"]:
+                    raise ValueError("model provenance changed during prospective inference")
             rows.append(row)
     if source_provenance() != implementation:
         raise ValueError("implementation changed during inference")
@@ -250,15 +316,29 @@ def run_pilot(
             "Kronos pretraining overlap is not ruled out.",
             "No order policy or profitability claim.",
         ],
-    }
-    progress_path.write_bytes(_encode({"stage": "complete", "cases": len(cases)}))
-    return write_report(
-        output_dir,
-        report,
-        {
-            "protocol.json": _encode(protocol),
-            "catalog.json": _encode(catalog),
-            "source.json": _encode(source),
-            "paths.npz": buffer.getvalue(),
+        "timing": {
+            "started_at": started_at,
+            "preparation_seconds": preparation_seconds,
+            "controls_seconds": controls_seconds,
+            "elapsed_seconds_before_publication": time.monotonic() - run_started,
+            "budget_enforcement": "admission_and_post_return; blocking_calls_not_cancelled",
+            "measurement_scope": "prepublication; complete timing in external progress",
         },
-    )
+    }
+    _progress(progress_path, "publication", cases=len(cases))
+    publication_started = time.monotonic()
+    try:
+        path = write_report(
+            output_dir, report,
+            {"protocol.json": _encode(protocol), "catalog.json": _encode(catalog),
+             "source.json": _encode(source), "paths.npz": buffer.getvalue()},
+        )
+    except Exception as exc:
+        _progress(progress_path, "failed", phase="publication", error_type=type(exc).__name__,
+                  started_at=started_at, finished_at=datetime.now(UTC).isoformat(),
+                  elapsed_seconds=time.monotonic() - run_started)
+        raise
+    _progress(progress_path, "complete", cases=len(cases), started_at=started_at,
+              finished_at=datetime.now(UTC).isoformat(), elapsed_seconds=time.monotonic() - run_started,
+              timing=report["timing"] | {"publication_seconds": time.monotonic() - publication_started})
+    return path

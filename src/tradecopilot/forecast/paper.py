@@ -25,6 +25,7 @@ DATA_ENDPOINT = "https://data.alpaca.markets/v2/stocks/bars"
 MAX_PAGES = 50
 MAX_BAR_ROWS = 30_000
 MAX_RESPONSE_BYTES = 20 * 1024 * 1024
+MAX_TOTAL_RAW_BYTES = 64 * 1024 * 1024
 _MINUTE = timedelta(minutes=1)
 _NEW_YORK = ZoneInfo("America/New_York")
 _FLAGS = ("account_blocked", "trading_blocked", "trade_suspended_by_user", "transfers_blocked")
@@ -39,13 +40,22 @@ class PaperSnapshot:
     raw_pages: tuple[bytes, ...] = field(repr=False)
 
 
-async def _response_bytes(client: httpx.AsyncClient, endpoint: str, params: dict[str, str] | None = None) -> bytes:
+async def _response_bytes(
+    client: httpx.AsyncClient,
+    endpoint: str,
+    params: dict[str, str] | None = None,
+    *,
+    max_bytes: int | None = None,
+) -> bytes:
+    limit = MAX_RESPONSE_BYTES if max_bytes is None else min(MAX_RESPONSE_BYTES, max_bytes)
+    if limit <= 0:
+        raise ValueError
     async with client.stream("GET", endpoint, params=params) as response:
         if response.status_code != 200:
             raise ValueError
         raw = bytearray()
         async for chunk in response.aiter_bytes():
-            if len(raw) + len(chunk) > MAX_RESPONSE_BYTES:
+            if len(raw) + len(chunk) > limit:
                 raise ValueError
             raw.extend(chunk)
         return bytes(raw)
@@ -153,6 +163,7 @@ async def read_paper_snapshot(
         records: list[dict[str, Any]] = []
         exclusions: Counter[str] = Counter()
         raw_count = 0
+        raw_bytes = 0
         async with httpx.AsyncClient(
             headers={"APCA-API-KEY-ID": credentials[0], "APCA-API-SECRET-KEY": credentials[1]},
             timeout=20, trust_env=False, follow_redirects=False, transport=transport,
@@ -160,7 +171,10 @@ async def read_paper_snapshot(
             account = _safe_account(_json_object(await _response_bytes(client, f"{PAPER_ENDPOINT}/v2/account")))
             clock = _safe_clock(_json_object(await _response_bytes(client, f"{PAPER_ENDPOINT}/v2/clock")))
             for page_number in range(1, MAX_PAGES + 1):
-                raw = await _response_bytes(client, DATA_ENDPOINT, params)
+                raw = await _response_bytes(client, DATA_ENDPOINT, params, max_bytes=MAX_TOTAL_RAW_BYTES - raw_bytes)
+                raw_bytes += len(raw)
+                if raw_bytes > MAX_TOTAL_RAW_BYTES:
+                    raise ValueError
                 receipt = datetime.now(UTC)
                 page = _json_object(raw)
                 rows = page.get("bars")

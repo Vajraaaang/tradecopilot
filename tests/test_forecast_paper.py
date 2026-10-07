@@ -256,6 +256,44 @@ def test_reads_enforce_resource_bounds(monkeypatch, bound):
     assert len(requests) == (4 if bound == "MAX_PAGES" else 3)
 
 
+def test_cumulative_market_bytes_stop_pagination_before_parsing_and_redact_keys(monkeypatch):
+    from tradecopilot.forecast import paper
+
+    monkeypatch.setattr(paper, "MAX_RESPONSE_BYTES", 512)
+    monkeypatch.setattr(paper, "MAX_TOTAL_RAW_BYTES", 1024, raising=False)
+    bodies = []
+    for i in range(5):
+        body = json.dumps({"bars": {"AAPL": [bar((START + timedelta(minutes=i)).isoformat())]},
+                           "next_page_token": str(i + 1) if i < 4 else None}).encode()
+        bodies.append(body + b" " * (451 - len(body)))
+    assert all(len(body) == 451 for body in bodies)
+    parsed = []
+    parse = paper._json_object
+
+    def observe_parse(raw):
+        if raw in bodies:
+            parsed.append(raw)
+        return parse(raw)
+
+    monkeypatch.setattr(paper, "_json_object", observe_parse)
+    requests = []
+    with pytest.raises(ValueError) as captured:
+        run([httpx.Response(200, content=body) for body in bodies],
+            end=START + timedelta(minutes=6), requests=requests)
+    assert len(requests) == 5 and parsed == bodies[:2]
+    details = "".join(traceback.format_exception(captured.value))
+    assert KEY not in details and SECRET not in details
+
+
+def test_cumulative_market_bytes_allow_exact_bound(monkeypatch):
+    from tradecopilot.forecast import paper
+
+    bodies = [json.dumps({"bars": {}, "next_page_token": token}).encode() for token in ("second", None)]
+    monkeypatch.setattr(paper, "MAX_TOTAL_RAW_BYTES", sum(map(len, bodies)), raising=False)
+    snapshot, _ = run([httpx.Response(200, content=body) for body in bodies])
+    assert snapshot.raw_pages == tuple(bodies)
+
+
 @pytest.mark.parametrize("endpoint", ["account", "clock", "bars"])
 @pytest.mark.parametrize("failure", [
     httpx.Response(401, text=f"denied {KEY} {SECRET}"), httpx.Response(403, text=SECRET),

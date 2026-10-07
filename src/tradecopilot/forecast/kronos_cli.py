@@ -109,7 +109,7 @@ def dispatch(args: argparse.Namespace) -> int:
         value["outcome_source_id"] = source["data_id"]
         artifacts = {name: (args.report.parent / name).read_bytes() for name in original["inventory"]}
         artifacts["outcome-source.json"] = (json.dumps(source, sort_keys=True) + "\n").encode()
-        path = write_report(args.output_dir, value, artifacts)
+        path = write_report(args.output_dir, value, artifacts, original_report_path=args.report)
         print(json.dumps({"report": str(path), "original_preserved": True, "broker_orders": 0}))
     else:
         raise ValueError("unknown Kronos command")

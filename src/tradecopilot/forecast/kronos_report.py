@@ -6,20 +6,42 @@ import copy
 import hashlib
 import json
 from collections.abc import Sequence
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from tradecopilot.forecast.bars import HistoricalBar
 from tradecopilot.forecast.contracts import content_hash, utc
+from tradecopilot.forecast.sessions import session_bounds
 
 SCHEMA = "kronos-paper-report-v1"
 _MAX_BYTES = 256 * 1024 * 1024
+_MINUTE = timedelta(minutes=1)
+_NEW_YORK = ZoneInfo("America/New_York")
 
 
 def _json(value: Any) -> bytes:
     return (json.dumps(value, indent=2, sort_keys=True, allow_nan=False) + "\n").encode()
+
+
+def validate_prospective_grid(future_times: Any) -> tuple[datetime, ...]:
+    """Require the fixed 15 consecutive UTC minute ends in one regular XNYS session."""
+    try:
+        if not isinstance(future_times, (list, tuple)) or len(future_times) != 15:
+            raise ValueError
+        future = tuple(datetime.fromisoformat(t) for t in future_times)
+        bounds = session_bounds(future[0].astimezone(_NEW_YORK).date())
+        if bounds is None or any(
+            t.tzinfo is None or t.utcoffset() != timedelta(0) or t.second or t.microsecond
+            or not bounds[0] < t <= bounds[1] or (index > 0 and t - future[index - 1] != _MINUTE)
+            for index, t in enumerate(future)
+        ):
+            raise ValueError
+        return future
+    except (TypeError, ValueError, OverflowError):
+        raise ValueError("invalid prospective target grid") from None
 
 
 def _validate_publication(report: dict[str, Any], completed_at: datetime | None = None) -> None:
@@ -27,24 +49,62 @@ def _validate_publication(report: dict[str, Any], completed_at: datetime | None 
     for row in report.get("cases", []):
         if row["group"] != "prospective":
             continue
+        future = validate_prospective_grid(row.get("future_times"))
         for forecast in row["forecasts"].values():
             if forecast["status"] != "ok":
                 continue
             try:
                 published = utc(datetime.fromisoformat(report["published_at"]))
                 generated = utc(datetime.fromisoformat(forecast["generated_at"]))
-                target = utc(datetime.fromisoformat(row["future_times"][-1]))
+                target = future[0]
             except (KeyError, TypeError, ValueError, IndexError):
                 raise ValueError("prospective publication timestamps are required") from None
             if generated > published or published >= target or (completed_at is not None and completed_at >= target):
-                raise ValueError("prospective publication must complete before the final target")
+                raise ValueError("prospective publication must complete before the first target")
 
 
-def write_report(directory: Path, report: dict[str, Any], artifacts: dict[str, bytes]) -> Path:
+def _immutable_forecast(report: dict[str, Any]) -> dict[str, Any]:
+    value = copy.deepcopy(report)
+    for field in ("report_id", "inventory", "bundle_created_at", "parent_report_id", "outcome_source_id"):
+        value.pop(field, None)
+    for row in value.get("cases", []):
+        if row["group"] == "prospective":
+            for field in ("actual_close", "outcome_status", "outcomes_received_at"):
+                row.pop(field, None)
+    return value
+
+
+def _validate_original(report: dict[str, Any], artifacts: dict[str, bytes], original_path: Path | None) -> None:
+    if original_path is None or not original_path.is_absolute():
+        raise ValueError("derived reports require a verified original report path")
+    original = load_report(original_path)
+    if (
+        report.get("parent_report_id") != original["report_id"]
+        or report.get("published_at") != original["published_at"]
+        or _immutable_forecast(report) != _immutable_forecast(original)
+    ):
+        raise ValueError("derived report must preserve the original forecast, context and publication")
+    for name, record in original["inventory"].items():
+        if name == "outcome-source.json":
+            continue
+        body = artifacts.get(name)
+        if body is None or len(body) != record["bytes"] or hashlib.sha256(body).hexdigest() != record["sha256"]:
+            raise ValueError("derived report must preserve original forecast artifacts")
+
+
+def write_report(
+    directory: Path,
+    report: dict[str, Any],
+    artifacts: dict[str, bytes],
+    *,
+    original_report_path: Path | None = None,
+) -> Path:
     if not directory.is_absolute():
         raise ValueError("report directory must be absolute")
     if directory.exists():
         raise FileExistsError("report bundles are immutable")
+    if report.get("parent_report_id") or original_report_path is not None:
+        _validate_original(report, artifacts, original_report_path)
     if any(
         Path(name).name != name or name in ("report.json", ".", "..") or len(body) > _MAX_BYTES
         for name, body in artifacts.items()
@@ -133,7 +193,8 @@ def attach_outcomes(
     source_metadata: dict[str, Any],
 ) -> dict[str, Any]:
     """Join subsequently received exact candles without rewriting any forecast."""
-    if source_metadata.get("feed") != report["connection"]["feed"]:
+    feed = report["connection"]["feed"]
+    if feed not in ("iex", "sip") or source_metadata.get("feed") != feed:
         raise ValueError("outcome feed must match the original forecast context")
     _validate_publication(report)
     receipt = utc(datetime.fromisoformat(source_metadata["receipt_at"]))
@@ -148,6 +209,8 @@ def attach_outcomes(
         if receipt < future[-1]:
             raise ValueError("outcome request was received before the final target")
         outcomes = [lookup.get((row["symbol"], t)) for t in future]
+        if any(b is not None and (b.source != f"alpaca_{feed}_1min_bar" or b.available_at > receipt) for b in outcomes):
+            raise ValueError("outcome candles must match the original feed and be available at source receipt")
         if any(b is None for b in outcomes):
             row["outcome_status"] = "pending_missing_exact_candles"
             row["actual_close"] = None
